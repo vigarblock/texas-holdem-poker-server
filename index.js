@@ -15,32 +15,69 @@ io.on("connection", (socket) => {
   socket.on("join", ({ name }) => {
     console.log(`'${socket.id}' joined the game`);
 
-    // Join the new socket connection to the same room.
-    socket.join(Game.name);
+    // TODO: Prevent joining when game has started
 
     // Add the new player
     Game.addPlayer({ id: socket.id, name });
 
-    // Emit opponents to everyone
-    const opponentsData = Game.getOpponentPlayers(socket.id);
-    socket.broadcast.to(Game.name).emit('opponentsData', { opponentsData });
+    // Emit opponents to every player individually
+    const allJoinedPlayers = Game.getAllPlayers();
+    allJoinedPlayers.forEach((player) => {
+      const opponentsData = Game.getOpponentPlayers(player.id);
 
-    // Emite player data
+      if (opponentsData.length > 0) {
+        console.log("Return opponent data for player - " + name, opponentsData);
+        io.to(player.id).emit("opponentsData", { opponentsData });
+      }
+    });
+
+    // Emit player data
     const player = Game.getPlayer(socket.id);
-    socket.emit('playerData', { playerData: player})
+    socket.emit("playerData", { playerData: player });
   });
 
   socket.on("startGame", () => {
     console.log("Game is starting");
-
     const chipCount = 1000;
 
-    // When game starts
-    // 1. Give each player chips
+    const allPlayers = Game.getAllPlayers();
+    if (allPlayers.length >= 2) {
+      // Update coin stack of all players
+      allPlayers.forEach((player) => {
+        Game.updatePlayer(player.id, { coins: chipCount });
+        const updatedPlayer = Game.getPlayer(player.id);
+        io.to(player.id).emit("playerData", { playerData: updatedPlayer });
+      });
+
+      allPlayers.forEach((player) => {
+        const opponentsData = Game.getOpponentPlayers(player.id);
+
+        if (opponentsData.length > 0) {
+          io.to(player.id).emit("opponentsData", { opponentsData });
+        }
+      });
+    }
   });
 
   socket.on("startHand", () => {
     console.log("New Hand is starting");
+
+    Game.startHand();
+
+    const allPlayers = Game.getAllPlayers();
+    if (allPlayers.length >= 2) {
+      allPlayers.forEach((player) => {
+        io.to(player.id).emit("playerData", { playerData: player});
+
+        const opponentsData = Game.getOpponentPlayers(player.id);
+
+        if (opponentsData.length > 0) {
+          io.to(player.id).emit("opponentsData", { opponentsData });
+        }
+      });
+    }
+
+    io.emit('handStarted');
   });
 
   socket.on("disconnect", () => {
