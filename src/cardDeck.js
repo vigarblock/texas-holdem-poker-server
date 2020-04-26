@@ -18,6 +18,7 @@ const values = [
 class CardDeck {
   constructor() {
     this.deck = [];
+    this.totalCards = 52;
     this._initializeDeck();
   }
 
@@ -38,11 +39,12 @@ class CardDeck {
       const cards = [];
 
       for (let index = 0; index < numOfCards; index++) {
-        const position = Math.floor(Math.random() * 52);
+        const position = Math.floor(Math.random() * this.totalCards);
         cards.push(this.deck[position]);
 
         // TODO: Ensure cards are not null
         this.deck.splice(position, 1);
+        this.totalCards -= 1;
       }
 
       return cards;
