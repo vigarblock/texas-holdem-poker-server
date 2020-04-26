@@ -2,11 +2,30 @@ const _ = require("lodash");
 const CardDeck = require("./cardDeck");
 const PLAYER_LIMIT = 5;
 
+const handState = {
+  STARTED: "STARTED",
+  PREFLOPBET: "PREFLOPBET",
+  FLOP: "FLOP",
+  FLOPBET: "FLOPBET",
+  TURN: "TURN",
+  TURNBET: "TURNBET",
+  RIVER: "RIVER",
+  RIVERBET: "RIVERBET",
+};
+
 class Game {
   constructor() {
     this.name = "my-test-game";
     this.players = [];
-    this.hand = { cardDeck: {}, flop: [], turn: {}, river: {}, pot: 0 };
+    this.hand = {
+      state: handState.STARTED,
+      cardDeck: {},
+      players: [],
+      currentPlayerIndex: 0,
+      betAgreedPlayers: [],
+      pot: 0,
+    };
+    this.activePlayer = {};
   }
 
   startHand() {
@@ -22,26 +41,94 @@ class Game {
         { suit: cards[1].suit, cardValue: cards[1].value },
       ];
 
-      if(this.players[index].position === 1){
+      if (this.players[index].position === 1) {
         this.players[index].isActive = true;
+        this.activePlayer = this.players[index];
       }
     }
+
+    this.hand.state = handState.PREFLOPBET;
+    this.hand.players = _.sortBy(this.hand.players, ["position"]);
   }
 
-  dealFlop() {
-    // TODO
-  }
+  playerAction(playerId, action, actionData) {
+    switch (this.hand.state) {
+      case handState.PREFLOPBET:
+        const player = this.getPlayer(playerId);
 
-  dealTurnCard() {
-    // TODO
-  }
+        if (player.isActive) {
+          if (action === "Check") {
+            this.hand.betAgreedPlayers.push(player);
+            this.updatePlayer(playerId, {
+              action: { name: "Checked", value: "" },
+            });
+          }
 
-  dealRiverCard() {
-    // TODO
-  }
+          if (action === "Call") {
+            const newCoinStack = player.coins - actionData;
+            this.updatePlayer(playerId, {
+              coins: newCoinStack,
+              action: { name: "Called", value: "" },
+            });
+            this.hand.betAgreedPlayers.push(player);
+          }
 
-  determineWinner() {
-    // TODO
+          if (action === "Fold") {
+            this.hand.players = _.remove(
+              this.hand.players,
+              (player) => player.id === playerId
+            );
+            this.updatePlayer(playerId, {
+              action: { name: "Folded", value: "" },
+            });
+          }
+
+          if (action === "Raise") {
+            const newCoinStack = player.coins - actionData;
+            this.updatePlayer(playerId, {
+              coins: newCoinStack,
+              action: { name: "Raised", value: actionData },
+            });
+
+            // Clear all previous bet agreements
+            this.hand.betAgreedPlayers = [];
+            this.hand.betAgreedPlayers.push(player);
+          }
+
+          if(this.hand.players.length === this.hand.betAgreedPlayers.length) {
+            // Bet agreement has been made, move on to flop
+            this.hand.state = handState.FLOP;
+
+            // TODO: Update community cards with flop so that users will see it.
+            // TODO: Determine next active player
+          } else {
+            // Hand state remains the same
+            // TODO: Determine next active player
+          }
+        }
+        break;
+
+      case handState.FLOP:
+        break;
+
+      case handState.FLOPBET:
+        break;
+
+      case handState.TURN:
+        break;
+
+      case handState.TURNBET:
+        break;
+
+      case handState.RIVER:
+        break;
+
+      case handState.RIVERBET:
+        break;
+
+      default:
+        break;
+    }
   }
 
   // TODO: Move player handling into own class

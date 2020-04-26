@@ -85,8 +85,8 @@ io.on("connection", (socket) => {
     Game.removePlayer(socket.id);
   });
 
-  socket.on("activePlayerAction", ({ name, value }) => {
-    console.log("Received player action: " + name + " : Value - " + value);
+  socket.on("activePlayerAction", ({ playerId, action, data }) => {
+    Game.playerAction(playerId, action, data);
   });
 });
 
