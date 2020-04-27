@@ -5,11 +5,8 @@ const PLAYER_LIMIT = 5;
 const handState = {
   STARTED: "STARTED",
   PREFLOPBET: "PREFLOPBET",
-  FLOP: "FLOP",
   FLOPBET: "FLOPBET",
-  TURN: "TURN",
   TURNBET: "TURNBET",
-  RIVER: "RIVER",
   RIVERBET: "RIVERBET",
 };
 
@@ -21,7 +18,9 @@ class Game {
       state: handState.STARTED,
       cardDeck: {},
       players: [],
+      foldedPlayers: [],
       currentPlayerIndex: 0,
+      currentBet: 0,
       betAgreedPlayers: [],
       pot: 0,
     };
@@ -74,10 +73,7 @@ class Game {
           }
 
           if (action === "Fold") {
-            this.hand.players = _.remove(
-              this.hand.players,
-              (player) => player.id === playerId
-            );
+            this.hand.foldedPlayers.push(player);
             this.updatePlayer(playerId, {
               action: { name: "Folded", value: "" },
             });
@@ -95,32 +91,54 @@ class Game {
             this.hand.betAgreedPlayers.push(player);
           }
 
-          if(this.hand.players.length === this.hand.betAgreedPlayers.length) {
-            // Bet agreement has been made, move on to flop
-            this.hand.state = handState.FLOP;
+          let repeat = true;
+          while (repeat) {
+            // Get next player position based on index
+            let nextPlayerPosition = player.position + 1;
+            if (nextPlayerPosition > this.players.length) {
+              nextPlayerPosition = 1;
+            }
 
-            // TODO: Update community cards with flop so that users will see it.
-            // TODO: Determine next active player
-          } else {
-            // Hand state remains the same
-            // TODO: Determine next active player
+            console.log("GETTING NEXT PLAYER", nextPlayerPosition);
+            const nextPlayer = this.getPlayerByPosition(nextPlayerPosition);
+            console.log("GOT NEXT PLAYER", nextPlayer);
+
+            // Check if next player is already in bet list
+            const isInBetList = _.find(
+              this.hand.betAgreedPlayers,
+              (player) => player.id === nextPlayer.id
+            );
+            const isInFoldedList = _.find(
+              this.hand.foldedPlayers,
+              (player) => player.id === nextPlayer.id
+            );
+
+            if (!isInBetList && !isInFoldedList) {
+              this.updatePlayer(playerId, { isActive: false });
+              this.updatePlayer(nextPlayer.id, { isActive: true });
+              repeat = false;
+            } else {
+              const totalPlayers =
+                this.hand.foldedPlayers.length +
+                this.hand.betAgreedPlayers.length;
+
+              if (totalPlayers === this.players.length) {
+                this.hand.state = handState.FLOPBET;
+
+                // SHOW FLOP
+                repeat = false;
+              }
+            }
           }
         }
-        break;
-
-      case handState.FLOP:
+        console.log("HAND", this.hand);
         break;
 
       case handState.FLOPBET:
-        break;
-
-      case handState.TURN:
+        console.log("CAME TO FLOP BET");
         break;
 
       case handState.TURNBET:
-        break;
-
-      case handState.RIVER:
         break;
 
       case handState.RIVERBET:
@@ -199,6 +217,14 @@ class Game {
     }
 
     return _.find(this.players, (player) => player.id === playerId);
+  }
+
+  getPlayerByPosition(playerPosition) {
+    if (this.players.length == 0) {
+      return undefined;
+    }
+
+    return _.find(this.players, (player) => player.position === playerPosition);
   }
 
   getAllPlayers() {

@@ -87,6 +87,19 @@ io.on("connection", (socket) => {
 
   socket.on("activePlayerAction", ({ playerId, action, data }) => {
     Game.playerAction(playerId, action, data);
+
+    const allPlayers = Game.getAllPlayers();
+    if (allPlayers.length >= 2) {
+      allPlayers.forEach((player) => {
+        io.to(player.id).emit("playerData", { playerData: player});
+
+        const opponentsData = Game.getOpponentPlayers(player.id);
+
+        if (opponentsData.length > 0) {
+          io.to(player.id).emit("opponentsData", { opponentsData });
+        }
+      });
+    }
   });
 });
 
