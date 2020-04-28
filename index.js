@@ -90,7 +90,14 @@ io.on("connection", (socket) => {
 
     const allPlayers = Game.getAllPlayers();
     if (allPlayers.length >= 2) {
+
+      // Emit hand data if any to everyone connected
+      // TODO: This approach won't scale for multiple rooms. Need to fix
+      const handCommunityCards = Game.getHandCommunityCards();
+      io.emit('communityCardsData', { communityCards: handCommunityCards });
+
       allPlayers.forEach((player) => {
+        console.log('RETURNING PLAYER DATA', player);
         io.to(player.id).emit("playerData", { playerData: player});
 
         const opponentsData = Game.getOpponentPlayers(player.id);

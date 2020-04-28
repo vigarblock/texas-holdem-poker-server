@@ -16,6 +16,7 @@ class Game {
     this.players = [];
     this.hand = {
       state: handState.STARTED,
+      communityCards: [],
       cardDeck: {},
       players: [],
       foldedPlayers: [],
@@ -51,20 +52,23 @@ class Game {
   }
 
   playerAction(playerId, action, actionData) {
+    console.log('Player Id', playerId);
+    console.log('Player action', action);
+    console.log('Player action data', actionData);
     switch (this.hand.state) {
       case handState.PREFLOPBET:
         const player = this.getPlayer(playerId);
 
         if (player.isActive) {
-          if (action === "Check") {
+          if (action === "check") {
             this.hand.betAgreedPlayers.push(player);
             this.updatePlayer(playerId, {
               action: { name: "Checked", value: "" },
             });
           }
 
-          if (action === "Call") {
-            const newCoinStack = player.coins - actionData;
+          if (action === "call") {
+            const newCoinStack = player.coins - parseInt(actionData);
             this.updatePlayer(playerId, {
               coins: newCoinStack,
               action: { name: "Called", value: "" },
@@ -72,15 +76,15 @@ class Game {
             this.hand.betAgreedPlayers.push(player);
           }
 
-          if (action === "Fold") {
+          if (action === "fold") {
             this.hand.foldedPlayers.push(player);
             this.updatePlayer(playerId, {
               action: { name: "Folded", value: "" },
             });
           }
 
-          if (action === "Raise") {
-            const newCoinStack = player.coins - actionData;
+          if (action === "raise") {
+            const newCoinStack = player.coins - parseInt(actionData);
             this.updatePlayer(playerId, {
               coins: newCoinStack,
               action: { name: "Raised", value: actionData },
@@ -91,6 +95,7 @@ class Game {
             this.hand.betAgreedPlayers.push(player);
           }
 
+          // Determine if another player needs to made active or the bet is settled
           let repeat = true;
           while (repeat) {
             // Get next player position based on index
@@ -99,9 +104,7 @@ class Game {
               nextPlayerPosition = 1;
             }
 
-            console.log("GETTING NEXT PLAYER", nextPlayerPosition);
             const nextPlayer = this.getPlayerByPosition(nextPlayerPosition);
-            console.log("GOT NEXT PLAYER", nextPlayer);
 
             // Check if next player is already in bet list
             const isInBetList = _.find(
@@ -114,7 +117,6 @@ class Game {
             );
 
             if (!isInBetList && !isInFoldedList) {
-              this.updatePlayer(playerId, { isActive: false });
               this.updatePlayer(nextPlayer.id, { isActive: true });
               repeat = false;
             } else {
@@ -126,10 +128,15 @@ class Game {
                 this.hand.state = handState.FLOPBET;
 
                 // SHOW FLOP
+                const flopCards = this.hand.cardDeck.takeCards(3);
+                this.hand.communityCards = [...flopCards];
                 repeat = false;
               }
             }
           }
+
+          // Make the current player inactive
+          this.updatePlayer(playerId, { isActive: false });
         }
         console.log("HAND", this.hand);
         break;
@@ -147,6 +154,11 @@ class Game {
       default:
         break;
     }
+  }
+
+  getHandCommunityCards() {
+    const communityCards = [...this.hand.communityCards];
+    return communityCards;
   }
 
   // TODO: Move player handling into own class
@@ -173,19 +185,19 @@ class Game {
   updatePlayer(playerId, { isActive, coins, action, playerHand }) {
     const updatedPlayer = this.players.forEach((player) => {
       if (playerId === player.id) {
-        if (isActive) {
+        if (isActive !== undefined) {
           player.isActive = isActive;
         }
 
-        if (coins) {
+        if (coins !== undefined) {
           player.coins = coins;
         }
 
-        if (action) {
+        if (action !== undefined) {
           player.action = action;
         }
 
-        if (playerHand) {
+        if (playerHand !== undefined) {
           player.playerHand = playerHand;
         }
 
