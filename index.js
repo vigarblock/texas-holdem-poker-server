@@ -18,7 +18,7 @@ io.on("connection", (socket) => {
     // TODO: Prevent joining when game has started
 
     // Add the new player
-    Game.addPlayer({ id: socket.id, name });
+    Game.addPlayerToGame({ id: socket.id, name });
 
     // Emit opponents to every player individually
     const allJoinedPlayers = Game.getAllPlayers();
