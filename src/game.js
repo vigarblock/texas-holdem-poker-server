@@ -132,6 +132,10 @@ class Game {
                 const flopCards = this.hand.cardDeck.takeCards(3);
                 this.hand.communityCards = [...flopCards];
                 repeat = false;
+
+                // Make player 0 active again to start new hand
+                const playerOne = this.getPlayerByPosition(1);
+                this.updatePlayer(playerOne.id, { isActive: true });
               }
 
               nextPlayerCalculationPosition = nextPlayer.position;
@@ -141,7 +145,6 @@ class Game {
           // Make the current player inactive
           this.updatePlayer(playerId, { isActive: false });
         }
-        console.log("HAND", this.hand);
         break;
 
       case handState.FLOPBET:
