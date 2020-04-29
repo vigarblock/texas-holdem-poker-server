@@ -38,34 +38,21 @@ io.on("connection", (socket) => {
 
   socket.on("startGame", () => {
     console.log("Game is starting");
+
+    // Chip count will come from the game host
     const chipCount = 1000;
 
     const allPlayers = Game.getAllPlayers();
     if (allPlayers.length >= 2) {
-      // Update coin stack of all players
+      // Update all joined players with chip count
       allPlayers.forEach((player) => {
         Game.updatePlayer(player.id, { coins: chipCount });
-        const updatedPlayer = Game.getPlayer(player.id);
-        io.to(player.id).emit("playerData", { playerData: updatedPlayer });
       });
 
-      allPlayers.forEach((player) => {
-        const opponentsData = Game.getOpponentPlayers(player.id);
+      // Start first hand
+      Game.startHand();
 
-        if (opponentsData.length > 0) {
-          io.to(player.id).emit("opponentsData", { opponentsData });
-        }
-      });
-    }
-  });
-
-  socket.on("startHand", () => {
-    console.log("New Hand is starting");
-
-    Game.startHand();
-
-    const allPlayers = Game.getAllPlayers();
-    if (allPlayers.length >= 2) {
+      // Emit player and opponent data to each joined player
       allPlayers.forEach((player) => {
         io.to(player.id).emit("playerData", { playerData: player});
 
@@ -75,14 +62,10 @@ io.on("connection", (socket) => {
           io.to(player.id).emit("opponentsData", { opponentsData });
         }
       });
+
+      // Emit game started event to room
+      io.emit('gameStarted');
     }
-
-    io.emit('handStarted');
-  });
-
-  socket.on("disconnect", () => {
-    console.log(`'${socket.id}' disconnected`);
-    Game.removePlayer(socket.id);
   });
 
   socket.on("activePlayerAction", ({ playerId, action, data }) => {
@@ -108,6 +91,15 @@ io.on("connection", (socket) => {
       });
     }
   });
+
+  socket.on("disconnect", () => {
+    console.log(`'${socket.id}' disconnected`);
+    Game.removePlayer(socket.id);
+  });
+
+  Game.on('handWinner', (data) => {
+    io.emit('handWinner', data);
+  })
 });
 
 app.use(router);

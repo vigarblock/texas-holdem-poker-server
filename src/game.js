@@ -1,3 +1,4 @@
+const EventEmitter = require("events");
 const _ = require("lodash");
 const CardDeck = require("./cardDeck");
 const PlayerService = require("./playerService");
@@ -8,8 +9,9 @@ const bettingState = {
   RIVERBET: "RIVERBET",
 };
 
-class Game {
+class Game extends EventEmitter {
   constructor() {
+    super();
     this.name = "my-first-game";
     this.hand = {};
 
@@ -23,10 +25,9 @@ class Game {
       cardDeck: new CardDeck(),
       players: [],
       foldedPlayers: [],
-      currentPlayerIndex: 0,
-      currentBet: 0,
       betAgreedPlayers: [],
       pot: 0,
+      automaticHandWinner: null,
     };
 
     this.hand.cardDeck.shuffle();
@@ -40,15 +41,19 @@ class Game {
       case bettingState.PREFLOPBET:
         if (player.isActive) {
           const onBetAgreement = () => {
-            this.hand.state = bettingState.FLOPBET;
-            const flopCards = this.hand.cardDeck.takeCards(3);
-            this.hand.communityCards = [...flopCards];
+            if (this.hand.automaticHandWinner) {
+              this.emit("handWinner", this.hand.automaticHandWinner);
+            } else {
+              this.hand.state = bettingState.FLOPBET;
+              const flopCards = this.hand.cardDeck.takeCards(3);
+              this.hand.communityCards = [...flopCards];
 
-            // Make player 0 active again to start new hand
-            const playerOne = this.playerService.getPlayerByPosition(1);
-            this.playerService.updatePlayer(playerOne.id, {
-              isActive: true,
-            });
+              // Make player 0 active again to start new hand
+              const playerOne = this.playerService.getPlayerByPosition(1);
+              this.playerService.updatePlayer(playerOne.id, {
+                isActive: true,
+              });
+            }
           };
 
           this._handlePlayerAction(player, action, actionData);
@@ -61,15 +66,19 @@ class Game {
       case bettingState.FLOPBET:
         if (player.isActive) {
           const onBetAgreement = () => {
-            this.hand.state = bettingState.TURNBET;
-            const [turnCard] = this.hand.cardDeck.takeCards(1);
-            this.hand.communityCards.push(turnCard);
+            if (this.hand.automaticHandWinner) {
+              this.emit("handWinner", this.hand.automaticHandWinner);
+            } else {
+              this.hand.state = bettingState.TURNBET;
+              const [turnCard] = this.hand.cardDeck.takeCards(1);
+              this.hand.communityCards.push(turnCard);
 
-            // Make player 0 active again to start new hand
-            const playerOne = this.playerService.getPlayerByPosition(1);
-            this.playerService.updatePlayer(playerOne.id, {
-              isActive: true,
-            });
+              // Make player 0 active again to start new hand
+              const playerOne = this.playerService.getPlayerByPosition(1);
+              this.playerService.updatePlayer(playerOne.id, {
+                isActive: true,
+              });
+            }
           };
 
           this._handlePlayerAction(player, action, actionData);
@@ -82,15 +91,19 @@ class Game {
       case bettingState.TURNBET:
         if (player.isActive) {
           const onBetAgreement = () => {
-            this.hand.state = bettingState.RIVERBET;
-            const [riverCard] = this.hand.cardDeck.takeCards(1);
-            this.hand.communityCards.push(riverCard);
+            if (this.hand.automaticHandWinner) {
+              this.emit("handWinner", this.hand.automaticHandWinner);
+            } else {
+              this.hand.state = bettingState.RIVERBET;
+              const [riverCard] = this.hand.cardDeck.takeCards(1);
+              this.hand.communityCards.push(riverCard);
 
-            // Make player 0 active again to start new hand
-            const playerOne = this.playerService.getPlayerByPosition(1);
-            this.playerService.updatePlayer(playerOne.id, {
-              isActive: true,
-            });
+              // Make player 0 active again to start new hand
+              const playerOne = this.playerService.getPlayerByPosition(1);
+              this.playerService.updatePlayer(playerOne.id, {
+                isActive: true,
+              });
+            }
           };
 
           this._handlePlayerAction(player, action, actionData);
@@ -103,7 +116,18 @@ class Game {
       case bettingState.RIVERBET:
         if (player.isActive) {
           const onBetAgreement = () => {
-            // Determine Winner
+            if (this.hand.automaticHandWinner) {
+              this.emit("handWinner", this.hand.automaticHandWinner);
+            } else {
+              // TODO: Determine hand winner
+              const handWinner = this.hand.betAgreedPlayers[1];
+              this.emit("handWinner", handWinner);
+            }
+
+            if (this._shouldGameEnd()) {
+              const gameWinner = this._getGameWinner();
+              this.emit("gameWinner", gameWinner);
+            }
           };
 
           this._handlePlayerAction(player, action, actionData);
@@ -115,104 +139,6 @@ class Game {
 
       default:
         break;
-    }
-  }
-
-  _haveAllPlayersAgreedOnBet() {
-    const totalPlayers =
-      this.hand.foldedPlayers.length + this.hand.betAgreedPlayers.length;
-
-    return totalPlayers === this.playerService.getAllPlayers().length;
-  }
-
-  _getNextPlayer(currentPlayerPosition) {
-    // Get next player position based on index
-    let nextPlayerPosition = currentPlayerPosition + 1;
-    if (nextPlayerPosition > this.playerService.getAllPlayers().length) {
-      nextPlayerPosition = 1;
-    }
-
-    const nextPlayer = this.playerService.getPlayerByPosition(
-      nextPlayerPosition
-    );
-
-    return nextPlayer;
-  }
-
-  _doesPlayerNeedToTakeAction(player) {
-    const isInBetList = _.find(
-      this.hand.betAgreedPlayers,
-      (p) => p.id === player.id
-    );
-    const isInFoldedList = _.find(
-      this.hand.foldedPlayers,
-      (p) => p.id === player.id
-    );
-
-    return !isInBetList && !isInFoldedList;
-  }
-
-  _determineBetAgreement(player, onBetAgreement) {
-    // Determine if another player needs to made active or the bet is settled
-    let repeat = true;
-    let nextPlayerCalculationPosition = player.position;
-    while (repeat) {
-      const nextPlayer = this._getNextPlayer(nextPlayerCalculationPosition);
-
-      if (this._doesPlayerNeedToTakeAction(nextPlayer)) {
-        this.playerService.updatePlayer(nextPlayer.id, {
-          isActive: true,
-        });
-        repeat = false;
-      } else {
-        if (this._haveAllPlayersAgreedOnBet()) {
-          onBetAgreement();
-          this.hand.betAgreedPlayers = [];
-          repeat = false;
-        }
-
-        nextPlayerCalculationPosition = nextPlayer.position;
-      }
-    }
-
-    // Make the current player inactive
-    this.playerService.updatePlayer(player.id, { isActive: false });
-  }
-
-  _handlePlayerAction(player, action, actionData) {
-    if (action === "check") {
-      this.hand.betAgreedPlayers.push(player);
-      this.playerService.updatePlayer(player.id, {
-        action: { name: "Checked", value: "" },
-      });
-    }
-
-    if (action === "call") {
-      const newCoinStack = player.coins - parseInt(actionData);
-      this.playerService.updatePlayer(player.id, {
-        coins: newCoinStack,
-        action: { name: "Called", value: "" },
-      });
-      this.hand.betAgreedPlayers.push(player);
-    }
-
-    if (action === "fold") {
-      this.hand.foldedPlayers.push(player);
-      this.playerService.updatePlayer(player.id, {
-        action: { name: "Folded", value: "" },
-      });
-    }
-
-    if (action === "raise") {
-      const newCoinStack = player.coins - parseInt(actionData);
-      this.playerService.updatePlayer(player.id, {
-        coins: newCoinStack,
-        action: { name: "Raised", value: actionData },
-      });
-
-      // Clear all previous bet agreements
-      this.hand.betAgreedPlayers = [];
-      this.hand.betAgreedPlayers.push(player);
     }
   }
 
@@ -269,6 +195,138 @@ class Game {
     this.hand.players = _.sortBy(this.playerService.getAllPlayers(), [
       "position",
     ]);
+  }
+
+  _haveAllPlayersAgreedOnBet() {
+    const totalPlayers =
+      this.hand.foldedPlayers.length + this.hand.betAgreedPlayers.length;
+
+    return totalPlayers === this.playerService.getAllPlayers().length;
+  }
+
+  _getNextPlayer(currentPlayerPosition) {
+    // Get next player position based on index
+    let nextPlayerPosition = currentPlayerPosition + 1;
+    if (nextPlayerPosition > this.playerService.getAllPlayers().length) {
+      nextPlayerPosition = 1;
+    }
+
+    const nextPlayer = this.playerService.getPlayerByPosition(
+      nextPlayerPosition
+    );
+
+    return nextPlayer;
+  }
+
+  _doesPlayerNeedToTakeAction(player) {
+    const isInBetList = _.find(
+      this.hand.betAgreedPlayers,
+      (p) => p.id === player.id
+    );
+    const isInFoldedList = _.find(
+      this.hand.foldedPlayers,
+      (p) => p.id === player.id
+    );
+
+    return !isInBetList && !isInFoldedList;
+  }
+
+  _determineBetAgreement(player, onBetAgreement) {
+    // Determine if another player needs to made active or the bet is settled
+    let repeat = true;
+    let nextPlayerCalculationPosition = player.position;
+    while (repeat) {
+      const nextPlayer = this._getNextPlayer(nextPlayerCalculationPosition);
+
+      if (this._doesPlayerNeedToTakeAction(nextPlayer)) {
+        this.playerService.updatePlayer(nextPlayer.id, {
+          isActive: true,
+        });
+        repeat = false;
+      } else {
+        if (this._haveAllPlayersAgreedOnBet()) {
+          // If all but 1 player has folded, then automatically award hand win
+          if (this.hand.betAgreedPlayers.length === 1) {
+            this.hand.automaticHandWinner = this.hand.betAgreedPlayers[0];
+          }
+
+          onBetAgreement();
+          this.hand.betAgreedPlayers = [];
+          repeat = false;
+        }
+
+        nextPlayerCalculationPosition = nextPlayer.position;
+      }
+    }
+
+    // Make the current player inactive
+    this.playerService.updatePlayer(player.id, { isActive: false });
+  }
+
+  _handlePlayerAction(player, action, actionData) {
+    if (action === "check") {
+      this.hand.betAgreedPlayers.push(player);
+      this.playerService.updatePlayer(player.id, {
+        action: { name: "Checked", value: "" },
+      });
+    }
+
+    if (action === "call") {
+      this.hand.pot = +parseInt(actionData);
+      const newCoinStack = player.coins - parseInt(actionData);
+      this.playerService.updatePlayer(player.id, {
+        coins: newCoinStack,
+        action: { name: "Called", value: actionData },
+      });
+      this.hand.betAgreedPlayers.push(player);
+    }
+
+    if (action === "fold") {
+      this.hand.foldedPlayers.push(player);
+      this.playerService.updatePlayer(player.id, {
+        action: { name: "Folded", value: "" },
+      });
+    }
+
+    if (action === "raise") {
+      this.hand.pot = +parseInt(actionData);
+      const newCoinStack = player.coins - parseInt(actionData);
+      this.playerService.updatePlayer(player.id, {
+        coins: newCoinStack,
+        action: { name: "Raised", value: actionData },
+      });
+
+      // Clear all previous bet agreements
+      this.hand.betAgreedPlayers = [];
+      this.hand.betAgreedPlayers.push(player);
+    }
+  }
+
+  _shouldGameEnd() {
+    const allPlayers = this.playerService.getAllPlayers();
+
+    const lostPlayers = [];
+    _.find(allPlayers, (player) => {
+      if (player.coins === 0) {
+        lostPlayers.push(player);
+      }
+    });
+
+    return lostPlayers.length === allPlayers.length - 1;
+  }
+
+  _getGameWinner() {
+    const allPlayers = this.playerService.getAllPlayers();
+
+    const winner = [];
+
+    _.find(allPlayers, (player) => {
+      if (player.coins !== 0) {
+        winner.push(player);
+      }
+    });
+
+    return winner[0];
   }
 }
 
