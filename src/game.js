@@ -97,9 +97,10 @@ class Game {
 
           // Determine if another player needs to made active or the bet is settled
           let repeat = true;
+          let nextPlayerCalculationPosition = player.position;
           while (repeat) {
             // Get next player position based on index
-            let nextPlayerPosition = player.position + 1;
+            let nextPlayerPosition = nextPlayerCalculationPosition + 1;
             if (nextPlayerPosition > this.players.length) {
               nextPlayerPosition = 1;
             }
@@ -132,6 +133,8 @@ class Game {
                 this.hand.communityCards = [...flopCards];
                 repeat = false;
               }
+
+              nextPlayerCalculationPosition = nextPlayer.position;
             }
           }
 
