@@ -11,6 +11,14 @@ const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
 
+Game.on('handWinner', (data) => {
+  io.emit('handWinner', data);
+});
+
+Game.on('gameWinner', (data) => {
+  io.emit('gameWinner', data);
+});
+
 io.on("connection", (socket) => {
   socket.on("join", ({ name }) => {
     console.log(`'${socket.id}' joined the game`);
@@ -80,7 +88,6 @@ io.on("connection", (socket) => {
       io.emit('communityCardsData', { communityCards: handCommunityCards });
 
       allPlayers.forEach((player) => {
-        console.log('RETURNING PLAYER DATA', player);
         io.to(player.id).emit("playerData", { playerData: player});
 
         const opponentsData = Game.getOpponentPlayers(player.id);
@@ -96,10 +103,6 @@ io.on("connection", (socket) => {
     console.log(`'${socket.id}' disconnected`);
     Game.removePlayer(socket.id);
   });
-
-  Game.on('handWinner', (data) => {
-    io.emit('handWinner', data);
-  })
 });
 
 app.use(router);
