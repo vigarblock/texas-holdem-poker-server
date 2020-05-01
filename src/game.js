@@ -42,7 +42,7 @@ class Game extends EventEmitter {
         if (player.isActive) {
           const onBetAgreement = () => {
             if (this.hand.automaticHandWinner) {
-              this.emit("handWinner", this.hand.automaticHandWinner);
+              this._completeHand(this.hand.automaticHandWinner);
             } else {
               this.hand.state = bettingState.FLOPBET;
               const flopCards = this.hand.cardDeck.takeCards(3);
@@ -67,7 +67,7 @@ class Game extends EventEmitter {
         if (player.isActive) {
           const onBetAgreement = () => {
             if (this.hand.automaticHandWinner) {
-              this.emit("handWinner", this.hand.automaticHandWinner);
+              this._completeHand(this.hand.automaticHandWinner);
             } else {
               this.hand.state = bettingState.TURNBET;
               const [turnCard] = this.hand.cardDeck.takeCards(1);
@@ -92,7 +92,7 @@ class Game extends EventEmitter {
         if (player.isActive) {
           const onBetAgreement = () => {
             if (this.hand.automaticHandWinner) {
-              this.emit("handWinner", this.hand.automaticHandWinner);
+              this._completeHand(this.hand.automaticHandWinner);
             } else {
               this.hand.state = bettingState.RIVERBET;
               const [riverCard] = this.hand.cardDeck.takeCards(1);
@@ -117,11 +117,12 @@ class Game extends EventEmitter {
         if (player.isActive) {
           const onBetAgreement = () => {
             if (this.hand.automaticHandWinner) {
-              this.emit("handWinner", this.hand.automaticHandWinner);
+              this._completeHand(this.hand.automaticHandWinner);
             } else {
               // TODO: Determine hand winner
               const handWinner = this.hand.betAgreedPlayers[1];
-              this.emit("handWinner", handWinner);
+              this._completeHand(handWinner);
+
             }
 
             if (this._shouldGameEnd()) {
@@ -327,6 +328,29 @@ class Game extends EventEmitter {
     });
 
     return winner[0];
+  }
+
+  _completeHand(winningPlayer) {
+    const playerData = [];
+
+    this.hand.betAgreedPlayers.forEach((player) => {
+      playerData.push(player);
+    });
+
+    this.hand.foldedPlayers.forEach((player) => {
+      const foldedPlayer = Object.assign({}, player);
+      foldedPlayer.playerHand = [];
+      playerData.push(foldedPlayer);
+    });
+
+    const handWinnerData = {
+      communityCards: this.getHandCommunityCards(),
+      pot: this.hand.pot,
+      winner: winningPlayer.name,
+      playerData
+    }
+
+    this.emit("handWinner", handWinnerData);
   }
 }
 
