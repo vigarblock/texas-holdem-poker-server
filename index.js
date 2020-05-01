@@ -11,12 +11,16 @@ const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
 
-Game.on('handWinner', (data) => {
-  io.emit('handWinner', data);
+Game.on("handWinner", (data) => {
+  io.emit("handWinner", data);
 });
 
-Game.on('gameWinner', (data) => {
-  io.emit('gameWinner', data);
+Game.on("gameWinner", (data) => {
+  io.emit("gameWinner", data);
+});
+
+Game.on("readyToContinue", () => {
+  io.emit("readyToContinue");
 });
 
 io.on("connection", (socket) => {
@@ -62,7 +66,7 @@ io.on("connection", (socket) => {
 
       // Emit player and opponent data to each joined player
       allPlayers.forEach((player) => {
-        io.to(player.id).emit("playerData", { playerData: player});
+        io.to(player.id).emit("playerData", { playerData: player });
 
         const opponentsData = Game.getOpponentPlayers(player.id);
 
@@ -72,23 +76,19 @@ io.on("connection", (socket) => {
       });
 
       // Emit game started event to room
-      io.emit('gameStarted');
+      io.emit("gameStarted");
     }
   });
 
-  socket.on("activePlayerAction", ({ playerId, action, data }) => {
-    Game.playerAction(playerId, action, data);
-
+  socket.on("startNewHand", () => {
     const allPlayers = Game.getAllPlayers();
     if (allPlayers.length >= 2) {
+      // Start first hand
+      Game.startHand();
 
-      // Emit hand data if any to everyone connected
-      // TODO: This approach won't scale for multiple rooms. Need to fix
-      const handCommunityCards = Game.getHandCommunityCards();
-      io.emit('communityCardsData', { communityCards: handCommunityCards });
-
+      // Emit player and opponent data to each joined player
       allPlayers.forEach((player) => {
-        io.to(player.id).emit("playerData", { playerData: player});
+        io.to(player.id).emit("playerData", { playerData: player });
 
         const opponentsData = Game.getOpponentPlayers(player.id);
 
@@ -97,6 +97,36 @@ io.on("connection", (socket) => {
         }
       });
     }
+  });
+
+  socket.on("activePlayerAction", ({ playerId, action, data }) => {
+    Game.playerAction(playerId, action, data);
+
+    const allPlayers = Game.getAllPlayers();
+    if (allPlayers.length >= 2) {
+      // Emit hand data if any to everyone connected
+      // TODO: This approach won't scale for multiple rooms. Need to fix
+      const handCommunityCards = Game.getHandCommunityCards();
+      io.emit("communityCardsData", { communityCards: handCommunityCards });
+
+      allPlayers.forEach((player) => {
+        io.to(player.id).emit("playerData", { playerData: player });
+
+        const opponentsData = Game.getOpponentPlayers(player.id);
+
+        if (opponentsData.length > 0) {
+          io.to(player.id).emit("opponentsData", { opponentsData });
+        }
+      });
+    }
+  });
+
+  socket.on("playerContinue", ({ playerId }) => {
+    Game.playerContinue(playerId);
+  });
+
+  socket.on("playerExit", ({ playerId }) => {
+    Game.removePlayer(playerId);
   });
 
   socket.on("disconnect", () => {

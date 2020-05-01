@@ -2,6 +2,12 @@ const EventEmitter = require("events");
 const _ = require("lodash");
 const CardDeck = require("./cardDeck");
 const PlayerService = require("./playerService");
+
+const gameState = {
+  WAITING: 'WAITING',
+  INPROGRESS: 'INPROGRESS',
+}
+
 const bettingState = {
   PREFLOPBET: "PREFLOPBET",
   FLOPBET: "FLOPBET",
@@ -13,12 +19,15 @@ class Game extends EventEmitter {
   constructor() {
     super();
     this.name = "my-first-game";
+    this.state = gameState.WAITING;
     this.hand = {};
 
     this.playerService = new PlayerService();
   }
 
   startHand() {
+    this.state = gameState.INPROGRESS;
+
     this.hand = {
       state: bettingState.PREFLOPBET,
       communityCards: [],
@@ -145,6 +154,16 @@ class Game extends EventEmitter {
 
   addPlayerToGame({ id, name }) {
     this.playerService.addPlayer({ id, name });
+  }
+
+  playerContinue(playerId) {
+    this.playerService.updatePlayer(playerId, { action : { name: "Joined", value: "" }});
+
+    const playersWaitingToJoin = _.find(this.playerService.getAllPlayers(), (player) => player.action.name !== "Joined");
+
+    if(!playersWaitingToJoin) {
+      this.emit("readyToContinue");
+    }
   }
 
   updatePlayer(playerId, playerData) {
@@ -351,6 +370,7 @@ class Game extends EventEmitter {
     }
 
     this.emit("handWinner", handWinnerData);
+    this.state = gameState.WAITING;
   }
 }
 
