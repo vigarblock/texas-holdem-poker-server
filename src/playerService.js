@@ -14,6 +14,9 @@ class PlayerService {
     const player = {
       id: data.id,
       isActive: false,
+      isDealer: false,
+      isSmallBlind: false,
+      isBigBlind: false,
       position: this.players.length + 1,
       name: data.name,
       coins: 0,
@@ -24,11 +27,26 @@ class PlayerService {
     this.players.push(player);
   }
 
-  updatePlayer(playerId, { isActive, coins, action, playerHand }) {
+  updatePlayer(
+    playerId,
+    { isActive, isSmallBlind, isBigBlind, isDealer, coins, action, playerHand }
+  ) {
     this.players.forEach((player) => {
       if (playerId === player.id) {
         if (isActive !== undefined) {
           player.isActive = isActive;
+        }
+
+        if (isDealer !== undefined) {
+          player.isDealer = isDealer;
+        }
+
+        if (isSmallBlind !== undefined) {
+          player.isSmallBlind = isSmallBlind;
+        }
+
+        if (isBigBlind !== undefined) {
+          player.isBigBlind = isBigBlind;
         }
 
         if (coins !== undefined) {
@@ -73,7 +91,6 @@ class PlayerService {
 
     this.players.forEach((player) => {
       if (player.id !== currentPlayerId) {
-
         const opponent = Object.assign({}, player);
 
         // Remove opponent hand data

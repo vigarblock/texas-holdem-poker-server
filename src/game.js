@@ -5,6 +5,7 @@ const PlayerService = require("./playerService");
 
 const gameState = {
   WAITING: "WAITING",
+  READYTOSTART: "READYTOSTART",
   INPROGRESS: "INPROGRESS",
 };
 
@@ -20,6 +21,8 @@ class Game extends EventEmitter {
     super();
     this.name = "my-first-game";
     this.state = gameState.WAITING;
+    this.dealer = null;
+    this.minBet = 20;
     this.hand = {};
 
     this.playerService = new PlayerService();
@@ -40,7 +43,7 @@ class Game extends EventEmitter {
     };
 
     this.hand.cardDeck.shuffle();
-    this._initializePlayerHandsAndSetStarter();
+    this._initializePlayerHandsAndSetDealer();
   }
 
   playerAction(playerId, action, actionData) {
@@ -166,8 +169,12 @@ class Game extends EventEmitter {
     );
 
     if (!playersWaitingToJoin) {
-      this.emit("readyToContinue");
+      this.state = gameState.READYTOSTART;
     }
+  }
+
+  isReadyToStartNewHand() {
+    return this.state === gameState.READYTOSTART;
   }
 
   updatePlayer(playerId, playerData) {
@@ -194,11 +201,21 @@ class Game extends EventEmitter {
     return [...this.hand.communityCards];
   }
 
-  _initializePlayerHandsAndSetStarter() {
-    // Determine Hand starter
-    const startingPlayer = 1;
-
+  _initializePlayerHandsAndSetDealer() {
     const joinedPlayers = this.playerService.getAllPlayers();
+    console.log('Pre hand ', joinedPlayers);
+
+    // Find which player is going to be the dealer
+    if (!this.dealer) {
+      this.dealer = _.find(joinedPlayers, (player) => player.position === 1);
+    } else {
+      this.dealer = this._getNextPlayer(this.dealer.position);
+    }
+
+    // Player blinds
+    const smallBlindPlayer = this._getNextPlayer(this.dealer.position);
+    const bigBlindPlayer = this._getNextPlayer(smallBlindPlayer.position);
+
     joinedPlayers.forEach((player) => {
       const cards = this.hand.cardDeck.takeCards(2);
 
@@ -207,18 +224,45 @@ class Game extends EventEmitter {
         { suit: cards[1].suit, cardValue: cards[1].value },
       ];
 
-      let playerData = { playerHand };
+      const playerHandData = { playerHand };
 
-      if (player.position === startingPlayer) {
-        playerData.isActive = true;
+      // Set dealer and active player
+      if (player.position === this.dealer.position) {
+        playerHandData.isActive = true;
+        playerHandData.isDealer = true;
+        playerHandData.isSmallBlind = false;
+      } else {
+        playerHandData.isActive = false;
+        playerHandData.isDealer = false;
+
+        // Set small blind and update pot
+        if (player.position === smallBlindPlayer.position) {
+          playerHandData.isSmallBlind = true;
+          playerHandData.coins = player.coins - this.minBet;
+          this.hand.pot += this.minBet;
+        } else {
+          playerHandData.isSmallBlind = false;
+        }
+
+        // Set big blind and update pot
+        if (player.position === bigBlindPlayer.position) {
+          playerHandData.isBigBlind = true;
+          const bigBlindBet = this.minBet * 2;
+          playerHandData.coins = player.coins - bigBlindBet;
+          this.hand.pot += bigBlindBet;
+        } else {
+          playerHandData.isBigBlind = false;
+        }
       }
 
-      this.playerService.updatePlayer(player.id, playerData);
+      this.playerService.updatePlayer(player.id, playerHandData);
     });
 
     this.hand.players = _.sortBy(this.playerService.getAllPlayers(), [
       "position",
     ]);
+
+    console.log("PLAYERS", this.hand.players);
   }
 
   _haveAllPlayersAgreedOnBet() {

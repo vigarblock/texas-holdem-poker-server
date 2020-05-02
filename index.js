@@ -19,10 +19,6 @@ Game.on("gameWinner", (data) => {
   io.emit("gameWinner", data);
 });
 
-Game.on("readyToContinue", () => {
-  io.emit("readyToContinue");
-});
-
 io.on("connection", (socket) => {
   socket.on("join", ({ name }) => {
     console.log(`'${socket.id}' joined the game`);
@@ -122,10 +118,52 @@ io.on("connection", (socket) => {
 
   socket.on("playerContinue", ({ playerId }) => {
     Game.playerContinue(playerId);
+
+    if (Game.isReadyToStartNewHand()) {
+      Game.startHand();
+      const allPlayers = Game.getAllPlayers();
+      if (allPlayers.length >= 2) {
+        // Emit hand data if any to everyone connected
+        // TODO: This approach won't scale for multiple rooms. Need to fix
+        const handCommunityCards = Game.getHandCommunityCards();
+        io.emit("communityCardsData", { communityCards: handCommunityCards });
+
+        allPlayers.forEach((player) => {
+          io.to(player.id).emit("playerData", { playerData: player });
+
+          const opponentsData = Game.getOpponentPlayers(player.id);
+
+          if (opponentsData.length > 0) {
+            io.to(player.id).emit("opponentsData", { opponentsData });
+          }
+        });
+      }
+    }
   });
 
   socket.on("playerExit", ({ playerId }) => {
     Game.removePlayer(playerId);
+
+    if (Game.isReadyToStartNewHand()) {
+      Game.startHand();
+      const allPlayers = Game.getAllPlayers();
+      if (allPlayers.length >= 2) {
+        // Emit hand data if any to everyone connected
+        // TODO: This approach won't scale for multiple rooms. Need to fix
+        const handCommunityCards = Game.getHandCommunityCards();
+        io.emit("communityCardsData", { communityCards: handCommunityCards });
+
+        allPlayers.forEach((player) => {
+          io.to(player.id).emit("playerData", { playerData: player });
+
+          const opponentsData = Game.getOpponentPlayers(player.id);
+
+          if (opponentsData.length > 0) {
+            io.to(player.id).emit("opponentsData", { opponentsData });
+          }
+        });
+      }
+    }
   });
 
   socket.on("disconnect", () => {
