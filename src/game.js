@@ -4,9 +4,9 @@ const CardDeck = require("./cardDeck");
 const PlayerService = require("./playerService");
 
 const gameState = {
-  WAITING: 'WAITING',
-  INPROGRESS: 'INPROGRESS',
-}
+  WAITING: "WAITING",
+  INPROGRESS: "INPROGRESS",
+};
 
 const bettingState = {
   PREFLOPBET: "PREFLOPBET",
@@ -131,7 +131,6 @@ class Game extends EventEmitter {
               // TODO: Determine hand winner
               const handWinner = this.hand.betAgreedPlayers[1];
               this._completeHand(handWinner);
-
             }
 
             if (this._shouldGameEnd()) {
@@ -157,11 +156,16 @@ class Game extends EventEmitter {
   }
 
   playerContinue(playerId) {
-    this.playerService.updatePlayer(playerId, { action : { name: "Joined", value: "" }});
+    this.playerService.updatePlayer(playerId, {
+      action: { name: "Joined", value: "" },
+    });
 
-    const playersWaitingToJoin = _.find(this.playerService.getAllPlayers(), (player) => player.action.name !== "Joined");
+    const playersWaitingToJoin = _.find(
+      this.playerService.getAllPlayers(),
+      (player) => player.action.name !== "Joined"
+    );
 
-    if(!playersWaitingToJoin) {
+    if (!playersWaitingToJoin) {
       this.emit("readyToContinue");
     }
   }
@@ -292,7 +296,7 @@ class Game extends EventEmitter {
     }
 
     if (action === "call") {
-      this.hand.pot = +parseInt(actionData);
+      this.hand.pot += parseInt(actionData);
       const newCoinStack = player.coins - parseInt(actionData);
       this.playerService.updatePlayer(player.id, {
         coins: newCoinStack,
@@ -309,7 +313,7 @@ class Game extends EventEmitter {
     }
 
     if (action === "raise") {
-      this.hand.pot = +parseInt(actionData);
+      this.hand.pot += parseInt(actionData);
       const newCoinStack = player.coins - parseInt(actionData);
       this.playerService.updatePlayer(player.id, {
         coins: newCoinStack,
@@ -350,6 +354,11 @@ class Game extends EventEmitter {
   }
 
   _completeHand(winningPlayer) {
+    console.log("POT", this.hand.pot);
+    console.log("Winner", winningPlayer);
+    const winnerCoinStack = winningPlayer.coins + this.hand.pot;
+    this.updatePlayer(winningPlayer.id, { coins: winnerCoinStack });
+
     const playerData = [];
 
     this.hand.betAgreedPlayers.forEach((player) => {
@@ -366,8 +375,8 @@ class Game extends EventEmitter {
       communityCards: this.getHandCommunityCards(),
       pot: this.hand.pot,
       winner: winningPlayer.name,
-      playerData
-    }
+      playerData,
+    };
 
     this.emit("handWinner", handWinnerData);
     this.state = gameState.WAITING;

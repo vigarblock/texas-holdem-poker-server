@@ -38,7 +38,6 @@ io.on("connection", (socket) => {
       const opponentsData = Game.getOpponentPlayers(player.id);
 
       if (opponentsData.length > 0) {
-        console.log("Return opponent data for player - " + name, opponentsData);
         io.to(player.id).emit("opponentsData", { opponentsData });
       }
     });
