@@ -203,7 +203,6 @@ class Game extends EventEmitter {
 
   _initializePlayerHandsAndSetDealer() {
     const joinedPlayers = this.playerService.getAllPlayers();
-    console.log('Pre hand ', joinedPlayers);
 
     // Find which player is going to be the dealer
     if (!this.dealer) {
@@ -287,6 +286,18 @@ class Game extends EventEmitter {
   }
 
   _doesPlayerNeedToTakeAction(player) {
+    const totalPlayers = this.playerService.getAllPlayers().length;
+    const foldedPlayers = this.hand.foldedPlayers.length;
+    if (totalPlayers - foldedPlayers === 1) {
+      this.hand.betAgreedPlayers.push(player);
+
+      // Automatically set this as player has no other option.
+      this.playerService.updatePlayer(player.id, {
+        action: { name: "Checked", value: "" },
+      });
+      return false;
+    }
+
     const isInBetList = _.find(
       this.hand.betAgreedPlayers,
       (p) => p.id === player.id
