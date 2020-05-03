@@ -35,7 +35,7 @@ class Game extends EventEmitter {
       state: bettingState.PREFLOPBET,
       communityCards: [],
       cardDeck: new CardDeck(),
-      players: [],
+      playerContributions: [],
       foldedPlayers: [],
       betAgreedPlayers: [],
       pot: 0,
@@ -255,13 +255,8 @@ class Game extends EventEmitter {
       }
 
       this.playerService.updatePlayer(player.id, playerHandData);
+      this.hand.playerContributions[player.id] = 0;
     });
-
-    this.hand.players = _.sortBy(this.playerService.getAllPlayers(), [
-      "position",
-    ]);
-
-    console.log("PLAYERS", this.hand.players);
   }
 
   _haveAllPlayersAgreedOnBet() {
@@ -351,8 +346,11 @@ class Game extends EventEmitter {
     }
 
     if (action === "call") {
-      this.hand.pot += parseInt(actionData);
-      const newCoinStack = player.coins - parseInt(actionData);
+      const amount = parseInt(actionData);
+      this.hand.pot += amount;
+      this.hand.playerContributions[player.id] += amount;
+
+      const newCoinStack = player.coins - amount;
       this.playerService.updatePlayer(player.id, {
         coins: newCoinStack,
         action: { name: "Called", value: actionData },
@@ -368,8 +366,11 @@ class Game extends EventEmitter {
     }
 
     if (action === "raise") {
-      this.hand.pot += parseInt(actionData);
-      const newCoinStack = player.coins - parseInt(actionData);
+      const amount = parseInt(actionData);
+      this.hand.pot += amount;
+      this.hand.playerContributions[player.id] += amount;
+
+      const newCoinStack = player.coins - amount;
       this.playerService.updatePlayer(player.id, {
         coins: newCoinStack,
         action: { name: "Raised", value: actionData },
@@ -409,9 +410,37 @@ class Game extends EventEmitter {
   }
 
   _completeHand(winningPlayer) {
-    console.log("POT", this.hand.pot);
-    console.log("Winner", winningPlayer);
-    const winnerCoinStack = winningPlayer.coins + this.hand.pot;
+    console.log("Hand Completed", this.hand);
+
+    // Determine hand winner and their portion of the pot.
+    // Return the remaining values if any to other players.
+    const winnerId = winningPlayer.id;
+    const winnerContribution = this.hand.playerContributions[winnerId];
+    delete this.hand.playerContributions[winnerId];
+
+    let winnerCoins = winnerContribution;
+
+    const contributedPlayers = Object.keys(this.hand.playerContributions);
+    contributedPlayers.forEach((player) => {
+      const playerContribution = this.hand.playerContributions[player];
+
+      if(playerContribution >= winnerContribution) {
+        winnerCoins += winnerContribution;
+        this.hand.playerContributions[player] = playerContribution - winnerContribution;
+      } else {
+        winnerCoins += playerContribution;
+        this.hand.playerContributions[player] = 0;
+      }
+
+      // If player needs to be reimbursed, update their coin stack.
+      if(this.hand.playerContributions[player] > 0) {
+        const currentPlayer = this.playerService.getPlayer(player);
+        const updatedPlayerCoins = currentPlayer.coins + this.hand.playerContributions[player];
+        this.updatePlayer(player, { coins: updatedPlayerCoins });
+      }
+    });
+
+    const winnerCoinStack = winningPlayer.coins + winnerCoins;
     this.updatePlayer(winningPlayer.id, { coins: winnerCoinStack });
 
     const playerData = [];
@@ -421,7 +450,7 @@ class Game extends EventEmitter {
     });
 
     this.hand.foldedPlayers.forEach((player) => {
-      const foldedPlayer = Object.assign({}, player);
+      const foldedPlayer = Object.assign({}, player);``
       foldedPlayer.playerHand = [];
       playerData.push(foldedPlayer);
     });
