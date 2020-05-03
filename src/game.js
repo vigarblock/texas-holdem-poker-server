@@ -59,12 +59,7 @@ class Game extends EventEmitter {
               this.hand.state = bettingState.FLOPBET;
               const flopCards = this.hand.cardDeck.takeCards(3);
               this.hand.communityCards = [...flopCards];
-
-              // Make player 0 active again to start new hand
-              const playerOne = this.playerService.getPlayerByPosition(1);
-              this.playerService.updatePlayer(playerOne.id, {
-                isActive: true,
-              });
+              this._makePlayerActivePostBetAgreement();
             }
           };
 
@@ -84,12 +79,7 @@ class Game extends EventEmitter {
               this.hand.state = bettingState.TURNBET;
               const [turnCard] = this.hand.cardDeck.takeCards(1);
               this.hand.communityCards.push(turnCard);
-
-              // Make player 0 active again to start new hand
-              const playerOne = this.playerService.getPlayerByPosition(1);
-              this.playerService.updatePlayer(playerOne.id, {
-                isActive: true,
-              });
+              this._makePlayerActivePostBetAgreement();
             }
           };
 
@@ -109,12 +99,7 @@ class Game extends EventEmitter {
               this.hand.state = bettingState.RIVERBET;
               const [riverCard] = this.hand.cardDeck.takeCards(1);
               this.hand.communityCards.push(riverCard);
-
-              // Make player 0 active again to start new hand
-              const playerOne = this.playerService.getPlayerByPosition(1);
-              this.playerService.updatePlayer(playerOne.id, {
-                isActive: true,
-              });
+              this._makePlayerActivePostBetAgreement();
             }
           };
 
@@ -281,18 +266,6 @@ class Game extends EventEmitter {
   }
 
   _doesPlayerNeedToTakeAction(player) {
-    const totalPlayers = this.playerService.getAllPlayers().length;
-    const foldedPlayers = this.hand.foldedPlayers.length;
-    if (totalPlayers - foldedPlayers === 1) {
-      this.hand.betAgreedPlayers.push(player);
-
-      // Automatically set this as player has no other option.
-      this.playerService.updatePlayer(player.id, {
-        action: { name: "Checked", value: "" },
-      });
-      return false;
-    }
-
     const isInBetList = _.find(
       this.hand.betAgreedPlayers,
       (p) => p.id === player.id
@@ -305,6 +278,13 @@ class Game extends EventEmitter {
     return !isInBetList && !isInFoldedList;
   }
 
+  _hasEveryoneElseFolded() {
+    // Does player have a viable option as action
+    const totalPlayers = this.playerService.getAllPlayers().length;
+    const foldedPlayers = this.hand.foldedPlayers.length;
+    return totalPlayers - foldedPlayers === 1;
+  }
+
   _determineBetAgreement(player, onBetAgreement) {
     // Determine if another player needs to made active or the bet is settled
     let repeat = true;
@@ -313,10 +293,19 @@ class Game extends EventEmitter {
       const nextPlayer = this._getNextPlayer(nextPlayerCalculationPosition);
 
       if (this._doesPlayerNeedToTakeAction(nextPlayer)) {
-        this.playerService.updatePlayer(nextPlayer.id, {
-          isActive: true,
-        });
-        repeat = false;
+        if (this._hasEveryoneElseFolded()) {
+          // Make this player the automatic winner
+          this.hand.automaticHandWinner = nextPlayer;
+          this.hand.betAgreedPlayers.push(nextPlayer);
+          onBetAgreement();
+          this.hand.betAgreedPlayers = [];
+          repeat = false;
+        } else {
+          this.playerService.updatePlayer(nextPlayer.id, {
+            isActive: true,
+          });
+          repeat = false;
+        }
       } else {
         if (this._haveAllPlayersAgreedOnBet()) {
           // If all but 1 player has folded, then automatically award hand win
@@ -335,6 +324,37 @@ class Game extends EventEmitter {
 
     // Make the current player inactive
     this.playerService.updatePlayer(player.id, { isActive: false });
+  }
+
+  _makePlayerActivePostBetAgreement() {
+    // Find who to make active again
+    let nextActivePlayer;
+    const hasDealerFolded = _.find(
+      this.hand.foldedPlayers,
+      (foldedPlayer) => foldedPlayer.id === this.dealer.id
+    );
+
+    if (!hasDealerFolded) {
+      nextActivePlayer = this.dealer;
+    } else {
+      let repeat = true;
+      while (repeat) {
+        const nextPlayer = this._getNextPlayer(this.dealer.position);
+        const hasNextPlayerFolded = _.find(
+          this.hand.foldedPlayers,
+          (foldedPlayer) => foldedPlayer.id === nextPlayer.id
+        );
+
+        if (!hasNextPlayerFolded) {
+          nextActivePlayer = nextPlayer;
+          repeat = false;
+        }
+      }
+    }
+
+    this.playerService.updatePlayer(nextActivePlayer.id, {
+      isActive: true,
+    });
   }
 
   _handlePlayerAction(player, action, actionData) {
@@ -424,18 +444,20 @@ class Game extends EventEmitter {
     contributedPlayers.forEach((player) => {
       const playerContribution = this.hand.playerContributions[player];
 
-      if(playerContribution >= winnerContribution) {
+      if (playerContribution >= winnerContribution) {
         winnerCoins += winnerContribution;
-        this.hand.playerContributions[player] = playerContribution - winnerContribution;
+        this.hand.playerContributions[player] =
+          playerContribution - winnerContribution;
       } else {
         winnerCoins += playerContribution;
         this.hand.playerContributions[player] = 0;
       }
 
       // If player needs to be reimbursed, update their coin stack.
-      if(this.hand.playerContributions[player] > 0) {
+      if (this.hand.playerContributions[player] > 0) {
         const currentPlayer = this.playerService.getPlayer(player);
-        const updatedPlayerCoins = currentPlayer.coins + this.hand.playerContributions[player];
+        const updatedPlayerCoins =
+          currentPlayer.coins + this.hand.playerContributions[player];
         this.updatePlayer(player, { coins: updatedPlayerCoins });
       }
     });
@@ -450,7 +472,7 @@ class Game extends EventEmitter {
     });
 
     this.hand.foldedPlayers.forEach((player) => {
-      const foldedPlayer = Object.assign({}, player);``
+      const foldedPlayer = Object.assign({}, player);
       foldedPlayer.playerHand = [];
       playerData.push(foldedPlayer);
     });
