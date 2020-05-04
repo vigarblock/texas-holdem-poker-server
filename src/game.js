@@ -146,6 +146,7 @@ class Game extends EventEmitter {
   playerContinue(playerId) {
     this.playerService.updatePlayer(playerId, {
       action: { name: "Joined", value: "" },
+      callAmount: 0,
     });
 
     const playersWaitingToJoin = _.find(
@@ -208,7 +209,7 @@ class Game extends EventEmitter {
         { suit: cards[1].suit, cardValue: cards[1].value },
       ];
 
-      const playerHandData = { playerHand };
+      const playerHandData = { playerHand, callAmount: 0 };
 
       // Set dealer and active player
       if (player.position === this.dealer.position) {
@@ -240,7 +241,7 @@ class Game extends EventEmitter {
       }
 
       this.playerService.updatePlayer(player.id, playerHandData);
-      this.hand.playerContributions[player.id] = 0;
+      this.hand.playerContributions.push({ id: player.id, contribution: 0 });
     });
   }
 
@@ -301,8 +302,10 @@ class Game extends EventEmitter {
           this.hand.betAgreedPlayers = [];
           repeat = false;
         } else {
+          const callAmount = this._getNextPlayersMinCallAmount(nextPlayer);
           this.playerService.updatePlayer(nextPlayer.id, {
             isActive: true,
+            callAmount,
           });
           repeat = false;
         }
@@ -323,7 +326,38 @@ class Game extends EventEmitter {
     }
 
     // Make the current player inactive
-    this.playerService.updatePlayer(player.id, { isActive: false });
+    this.playerService.updatePlayer(player.id, {
+      isActive: false,
+      callAmount: 0,
+    });
+  }
+
+  _getNextPlayersMinCallAmount(nextPlayer) {
+    let callAmount = 0;
+
+    console.log(this.hand.playerContributions);
+
+    const nextPlayerContribution = _.find(
+      this.hand.playerContributions,
+      (contributor) => contributor.id === nextPlayer.id
+    ).contribution;
+
+    if (nextPlayer.coins > 0) {
+      this.hand.playerContributions.forEach((contributor) => {
+        if (
+          contributor.id !== nextPlayer.id &&
+          contributor.contribution > nextPlayerContribution
+        ) {
+          callAmount = contributor.contribution - nextPlayerContribution;
+        }
+      });
+    }
+
+    if (callAmount > nextPlayer.coins) {
+      callAmount = nextPlayer.coins;
+    }
+
+    return callAmount;
   }
 
   _makePlayerActivePostBetAgreement() {
@@ -354,6 +388,7 @@ class Game extends EventEmitter {
 
     this.playerService.updatePlayer(nextActivePlayer.id, {
       isActive: true,
+      callAmount: 0,
     });
   }
 
@@ -362,18 +397,27 @@ class Game extends EventEmitter {
       this.hand.betAgreedPlayers.push(player);
       this.playerService.updatePlayer(player.id, {
         action: { name: "Checked", value: "" },
+        callAmount: 0,
       });
     }
 
     if (action === "call") {
       const amount = parseInt(actionData);
       this.hand.pot += amount;
-      this.hand.playerContributions[player.id] += amount;
+
+      console.log('Making CAll contribution of ' + amount);
+      this.hand.playerContributions.forEach((contributor) => {
+        if (contributor.id === player.id) {
+          contributor.contribution += amount;
+        }
+      });
+      console.log(this.hand.playerContributions);
 
       const newCoinStack = player.coins - amount;
       this.playerService.updatePlayer(player.id, {
         coins: newCoinStack,
         action: { name: "Called", value: actionData },
+        callAmount: 0,
       });
       this.hand.betAgreedPlayers.push(player);
     }
@@ -388,12 +432,19 @@ class Game extends EventEmitter {
     if (action === "raise") {
       const amount = parseInt(actionData);
       this.hand.pot += amount;
-      this.hand.playerContributions[player.id] += amount;
+      console.log('Making RAISE contribution of ' + amount);
+      this.hand.playerContributions.forEach((contributor) => {
+        if (contributor.id === player.id) {
+          contributor.contribution += amount;
+        }
+      });
+      console.log(this.hand.playerContributions);
 
       const newCoinStack = player.coins - amount;
       this.playerService.updatePlayer(player.id, {
         coins: newCoinStack,
         action: { name: "Raised", value: actionData },
+        callAmount: 0,
       });
 
       // Clear all previous bet agreements
@@ -435,30 +486,30 @@ class Game extends EventEmitter {
     // Determine hand winner and their portion of the pot.
     // Return the remaining values if any to other players.
     const winnerId = winningPlayer.id;
-    const winnerContribution = this.hand.playerContributions[winnerId];
-    delete this.hand.playerContributions[winnerId];
+    const winnerContribution = _.find(
+      this.hand.playerContributions,
+      (contributor) => contributor.id === winnerId
+    ).contribution;
 
     let winnerCoins = winnerContribution;
 
-    const contributedPlayers = Object.keys(this.hand.playerContributions);
-    contributedPlayers.forEach((player) => {
-      const playerContribution = this.hand.playerContributions[player];
+    this.hand.playerContributions.forEach((contributor) => {
+      if (contributor.id !== winnerId) {
+        if (contributor.contribution > winnerContribution) {
+          winnerCoins += winnerContribution;
+          contributor.contribution -= winnerContribution;
 
-      if (playerContribution >= winnerContribution) {
-        winnerCoins += winnerContribution;
-        this.hand.playerContributions[player] =
-          playerContribution - winnerContribution;
-      } else {
-        winnerCoins += playerContribution;
-        this.hand.playerContributions[player] = 0;
-      }
-
-      // If player needs to be reimbursed, update their coin stack.
-      if (this.hand.playerContributions[player] > 0) {
-        const currentPlayer = this.playerService.getPlayer(player);
-        const updatedPlayerCoins =
-          currentPlayer.coins + this.hand.playerContributions[player];
-        this.updatePlayer(player, { coins: updatedPlayerCoins });
+          // Reimburse the remaing amount back to the player
+          const contributedPlayer = this.playerService.getPlayer(
+            contributor.id
+          );
+          const updatedPlayerCoins =
+            contributedPlayer.coins + contributor.contribution;
+          this.updatePlayer(player, { coins: updatedPlayerCoins });
+        } else {
+          winnerCoins += contributor.contribution;
+          contributor.contribution = 0;
+        }
       }
     });
 

@@ -14,6 +14,7 @@ class PlayerService {
     const player = {
       id: data.id,
       isActive: false,
+      callAmount: 0,
       isDealer: false,
       isSmallBlind: false,
       isBigBlind: false,
@@ -29,7 +30,7 @@ class PlayerService {
 
   updatePlayer(
     playerId,
-    { isActive, isSmallBlind, isBigBlind, isDealer, coins, action, playerHand }
+    { isActive, isSmallBlind, isBigBlind, isDealer, coins, callAmount, action, playerHand }
   ) {
     this.players.forEach((player) => {
       if (playerId === player.id) {
@@ -51,6 +52,10 @@ class PlayerService {
 
         if (coins !== undefined) {
           player.coins = coins;
+        }
+
+        if (callAmount !== undefined) {
+          player.callAmount = callAmount;
         }
 
         if (action !== undefined) {
