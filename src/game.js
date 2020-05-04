@@ -287,6 +287,12 @@ class Game extends EventEmitter {
   }
 
   _determineBetAgreement(player, onBetAgreement) {
+    // Make the current player inactive
+    this.playerService.updatePlayer(player.id, {
+      isActive: false,
+      callAmount: 0,
+    });
+
     // Determine if another player needs to made active or the bet is settled
     let repeat = true;
     let nextPlayerCalculationPosition = player.position;
@@ -324,12 +330,6 @@ class Game extends EventEmitter {
         nextPlayerCalculationPosition = nextPlayer.position;
       }
     }
-
-    // Make the current player inactive
-    this.playerService.updatePlayer(player.id, {
-      isActive: false,
-      callAmount: 0,
-    });
   }
 
   _getNextPlayersMinCallAmount(nextPlayer) {
@@ -405,13 +405,11 @@ class Game extends EventEmitter {
       const amount = parseInt(actionData);
       this.hand.pot += amount;
 
-      console.log('Making CAll contribution of ' + amount);
       this.hand.playerContributions.forEach((contributor) => {
         if (contributor.id === player.id) {
           contributor.contribution += amount;
         }
       });
-      console.log(this.hand.playerContributions);
 
       const newCoinStack = player.coins - amount;
       this.playerService.updatePlayer(player.id, {
@@ -432,13 +430,11 @@ class Game extends EventEmitter {
     if (action === "raise") {
       const amount = parseInt(actionData);
       this.hand.pot += amount;
-      console.log('Making RAISE contribution of ' + amount);
       this.hand.playerContributions.forEach((contributor) => {
         if (contributor.id === player.id) {
           contributor.contribution += amount;
         }
       });
-      console.log(this.hand.playerContributions);
 
       const newCoinStack = player.coins - amount;
       this.playerService.updatePlayer(player.id, {
