@@ -17,9 +17,9 @@ const bettingState = {
 };
 
 class Game extends EventEmitter {
-  constructor() {
+  constructor(id) {
     super();
-    this.name = "my-first-game";
+    this.id = id;
     this.state = gameState.WAITING;
     this.dealer = null;
     this.minBet = 20;
@@ -536,4 +536,4 @@ class Game extends EventEmitter {
   }
 }
 
-module.exports = new Game();
+module.exports = Game;
