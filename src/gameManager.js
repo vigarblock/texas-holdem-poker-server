@@ -13,15 +13,8 @@ class GameManager extends EventEmitter {
     const gameId = uuidv4();
     const game = new Game(gameId);
 
-    game.on("handWinner", (data) => {
-      data.gameId = gameId;
-      this.emit("gameHandWinner", data);
-    });
-
-    game.on("gameWinner", (data) => {
-      data.gameId = gameId;
-      this.emit("gameWinner", data);
-    });
+    game.on("handWinner", (data) => this._emitGameHandWinner(gameId, data));
+    game.on("gameWinner", (data) => this._emitGameWinner(gameId, data));
 
     this.games.push({ id: gameId, instance: game });
     return gameId;
@@ -35,6 +28,17 @@ class GameManager extends EventEmitter {
 
     return game.instance;
   }
+
+  _emitGameHandWinner(gameId, data) {
+    data.gameId = gameId;
+    this.emit("gameHandWinner", data);
+  }
+
+  _emitGameWinner(gameId, data) {
+    data.gameId = gameId;
+    this.emit("gameWinner", data);
+  }
+  
 }
 
 module.exports = new GameManager();

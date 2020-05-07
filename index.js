@@ -1,28 +1,33 @@
 const express = require("express");
 const socketio = require("socket.io");
 const http = require("http");
-
 const router = require("./router");
 const GameManager = require("./src/gameManager");
-
-const PORT = process.env.PORT || 5000;
 
 const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
 
+const sendToGameRoom = (room, event, data) => {
+  io.in(room).emit(event, data);
+}
+
+const sendToIndividualPlayer = (playerId, event, data) => {
+  io.to(playerId).emit(event, data);
+}
+
 GameManager.on("gameHandWinner", (data) => {
-  // TODO: Emit to the correct game room
-  io.emit("handWinner", data);
+  sendToGameRoom(data.gameId, "handWinner", data);
 });
 
 GameManager.on("gameWinner", (data) => {
-  // TODO: Emit to the correct game room
-  io.emit("gameWinner", data);
+  sendToGameRoom(data.gameId, "gameWinner", data);
 });
 
 io.on("connection", (socket) => {
   socket.on("join", ({ gameId, name }) => {
+    socket.join(gameId);
+    
     const game = GameManager.getGameInstance(gameId);
     game.addPlayerToGame({ id: socket.id, name });
 
@@ -32,7 +37,7 @@ io.on("connection", (socket) => {
       const opponentsData = game.getOpponentPlayers(player.id);
 
       if (opponentsData.length > 0) {
-        io.to(player.id).emit("opponentsData", { opponentsData });
+        sendToIndividualPlayer(player.id, "opponentsData", { opponentsData })
       }
     });
 
@@ -58,17 +63,17 @@ io.on("connection", (socket) => {
 
       // Emit player and opponent data to each joined player
       allPlayers.forEach((player) => {
-        io.to(player.id).emit("playerData", { playerData: player });
+        sendToIndividualPlayer(player.id, "playerData", { playerData: player });
 
         const opponentsData = game.getOpponentPlayers(player.id);
 
         if (opponentsData.length > 0) {
-          io.to(player.id).emit("opponentsData", { opponentsData });
+          sendToIndividualPlayer(player.id, "opponentsData", { opponentsData });
         }
       });
 
       // Emit game started event to room
-      io.emit("gameStarted");
+      io.in(gameId).emit("gameStarted");
     }
   });
 
@@ -78,18 +83,16 @@ io.on("connection", (socket) => {
 
     const allPlayers = game.getAllPlayers();
     if (allPlayers.length >= 2) {
-      // Emit hand data if any to everyone connected
-      // TODO: This approach won't scale for multiple rooms. Need to fix
       const handCommunityCards = game.getHandCommunityCards();
-      io.emit("communityCardsData", { communityCards: handCommunityCards });
+      sendToGameRoom(gameId, "communityCardsData", { communityCards: handCommunityCards });
 
       allPlayers.forEach((player) => {
-        io.to(player.id).emit("playerData", { playerData: player });
+        sendToIndividualPlayer(player.id, "playerData", { playerData: player });
 
         const opponentsData = game.getOpponentPlayers(player.id);
 
         if (opponentsData.length > 0) {
-          io.to(player.id).emit("opponentsData", { opponentsData });
+          sendToIndividualPlayer(player.id, "opponentsData", { opponentsData });
         }
       });
     }
@@ -103,18 +106,16 @@ io.on("connection", (socket) => {
       game.startHand();
       const allPlayers = game.getAllPlayers();
       if (allPlayers.length >= 2) {
-        // Emit hand data if any to everyone connected
-        // TODO: This approach won't scale for multiple rooms. Need to fix
         const handCommunityCards = game.getHandCommunityCards();
-        io.emit("communityCardsData", { communityCards: handCommunityCards });
+          sendToGameRoom(gameId, "communityCardsData", { communityCards: handCommunityCards });
 
         allPlayers.forEach((player) => {
-          io.to(player.id).emit("playerData", { playerData: player });
+          sendToIndividualPlayer(player.id, "playerData", { playerData: player });
 
           const opponentsData = game.getOpponentPlayers(player.id);
 
           if (opponentsData.length > 0) {
-            io.to(player.id).emit("opponentsData", { opponentsData });
+            sendToIndividualPlayer(player.id, "opponentsData", { opponentsData });
           }
         });
       }
@@ -129,18 +130,16 @@ io.on("connection", (socket) => {
       game.startHand();
       const allPlayers = game.getAllPlayers();
       if (allPlayers.length >= 2) {
-        // Emit hand data if any to everyone connected
-        // TODO: This approach won't scale for multiple rooms. Need to fix
         const handCommunityCards = game.getHandCommunityCards();
-        io.emit("communityCardsData", { communityCards: handCommunityCards });
+        sendToGameRoom(gameId, "communityCardsData", { communityCards: handCommunityCards });
 
         allPlayers.forEach((player) => {
-          io.to(player.id).emit("playerData", { playerData: player });
+          sendToIndividualPlayer(player.id, "playerData", { playerData: player });
 
           const opponentsData = game.getOpponentPlayers(player.id);
 
           if (opponentsData.length > 0) {
-            io.to(player.id).emit("opponentsData", { opponentsData });
+            sendToIndividualPlayer(player.id, "opponentsData", { opponentsData });
           }
         });
       }
@@ -148,11 +147,11 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", ({ gameId }) => {
-    const game = GameManager.getGameInstance(gameId);
-    game.removePlayer(socket.id);
+    // const game = GameManager.getGameInstance(gameId);
+    // game.removePlayer(socket.id);
   });
 });
 
+const PORT = process.env.PORT || 5000;
 app.use(router);
-
 server.listen(PORT, () => console.log(`Server started on port '${PORT}'`));
