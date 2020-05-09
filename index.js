@@ -84,7 +84,8 @@ io.on("connection", (socket) => {
     const allPlayers = game.getAllPlayers();
     if (allPlayers.length >= 2) {
       const handCommunityCards = game.getHandCommunityCards();
-      sendToGameRoom(gameId, "communityCardsData", { communityCards: handCommunityCards });
+      const handPot = game.getHandPot();
+      sendToGameRoom(gameId, "communityData", { communityCards: handCommunityCards, pot: handPot });
 
       allPlayers.forEach((player) => {
         sendToIndividualPlayer(player.id, "playerData", { playerData: player });
@@ -107,7 +108,8 @@ io.on("connection", (socket) => {
       const allPlayers = game.getAllPlayers();
       if (allPlayers.length >= 2) {
         const handCommunityCards = game.getHandCommunityCards();
-          sendToGameRoom(gameId, "communityCardsData", { communityCards: handCommunityCards });
+        const handPot = game.getHandPot();
+          sendToGameRoom(gameId, "communityData", { communityCards: handCommunityCards, pot: handPot });
 
         allPlayers.forEach((player) => {
           sendToIndividualPlayer(player.id, "playerData", { playerData: player });

@@ -187,6 +187,10 @@ class Game extends EventEmitter {
     return [...this.hand.communityCards];
   }
 
+  getHandPot() {
+    return this.hand.pot;
+  }
+
   _initializePlayerHandsAndSetDealer() {
     const joinedPlayers = this.playerService.getAllPlayers();
 
@@ -209,6 +213,7 @@ class Game extends EventEmitter {
         { suit: cards[1].suit, cardValue: cards[1].value },
       ];
 
+      let initialPlayerContribution = 0;
       const playerHandData = { playerHand, callAmount: 0, minRaiseAmount: this.minBet };
 
       // Set dealer and active player
@@ -223,8 +228,11 @@ class Game extends EventEmitter {
         // Set small blind and update pot
         if (player.position === smallBlindPlayer.position) {
           playerHandData.isSmallBlind = true;
-          playerHandData.coins = player.coins - this.minBet;
-          this.hand.pot += this.minBet;
+          const smallBlindBet = this.minBet/2;
+          playerHandData.coins = player.coins - smallBlindBet;
+          this.hand.pot += smallBlindBet;
+          initialPlayerContribution = smallBlindBet;
+          playerHandData.action = { name: "Small Blind", value: smallBlindBet}
         } else {
           playerHandData.isSmallBlind = false;
         }
@@ -232,16 +240,17 @@ class Game extends EventEmitter {
         // Set big blind and update pot
         if (player.position === bigBlindPlayer.position) {
           playerHandData.isBigBlind = true;
-          const bigBlindBet = this.minBet * 2;
-          playerHandData.coins = player.coins - bigBlindBet;
-          this.hand.pot += bigBlindBet;
+          playerHandData.coins = player.coins - this.minBet;
+          this.hand.pot += this.minBet;
+          initialPlayerContribution = this.minBet;
+          playerHandData.action = { name: "Big Blind", value: this.minBet}
         } else {
           playerHandData.isBigBlind = false;
         }
       }
 
       this.playerService.updatePlayer(player.id, playerHandData);
-      this.hand.playerContributions.push({ id: player.id, contribution: 0 });
+      this.hand.playerContributions.push({ id: player.id, contribution: initialPlayerContribution });
     });
   }
 
