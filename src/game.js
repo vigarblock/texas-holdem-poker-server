@@ -391,6 +391,7 @@ class Game extends EventEmitter {
     this.playerService.updatePlayer(nextActivePlayer.id, {
       isActive: true,
       callAmount: 0,
+      minRaiseAmount: this.minBet,
     });
   }
 
