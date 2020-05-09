@@ -11,8 +11,10 @@ class PlayerService {
     if (playerPosition > MAX_PLAYER_LIMIT) {
       throw Error("Game has reached maximum allowed players");
     }
+
     const player = {
       id: data.id,
+      playerSessionId: data.playerSessionId,
       isActive: false,
       callAmount: 0,
       minRaiseAmount: 0,
@@ -31,7 +33,17 @@ class PlayerService {
 
   updatePlayer(
     playerId,
-    { isActive, isSmallBlind, isBigBlind, isDealer, coins, callAmount, minRaiseAmount, action, playerHand }
+    {
+      isActive,
+      isSmallBlind,
+      isBigBlind,
+      isDealer,
+      coins,
+      callAmount,
+      minRaiseAmount,
+      action,
+      playerHand,
+    }
   ) {
     this.players.forEach((player) => {
       if (playerId === player.id) {

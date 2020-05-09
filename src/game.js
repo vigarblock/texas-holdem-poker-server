@@ -139,8 +139,8 @@ class Game extends EventEmitter {
     }
   }
 
-  addPlayerToGame({ id, name }) {
-    this.playerService.addPlayer({ id, name });
+  addPlayerToGame({ id, name, playerSessionId }) {
+    this.playerService.addPlayer({ id, name, playerSessionId });
   }
 
   playerContinue(playerId) {

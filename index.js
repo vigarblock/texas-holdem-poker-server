@@ -25,11 +25,11 @@ GameManager.on("gameWinner", (data) => {
 });
 
 io.on("connection", (socket) => {
-  socket.on("join", ({ gameId, name }) => {
+  socket.on("join", ({ gameId, name, playerSessionId }) => {
     socket.join(gameId);
     
     const game = GameManager.getGameInstance(gameId);
-    game.addPlayerToGame({ id: socket.id, name });
+    game.addPlayerToGame({ id: socket.id, name, playerSessionId });
 
     // Emit opponents to every player individually
     const allJoinedPlayers = game.getAllPlayers();
@@ -125,25 +125,6 @@ io.on("connection", (socket) => {
   socket.on("playerExit", ({ gameId, playerId }) => {
     const game = GameManager.getGameInstance(gameId);
     game.removePlayer(playerId);
-
-    if (game.isReadyToStartNewHand()) {
-      game.startHand();
-      const allPlayers = game.getAllPlayers();
-      if (allPlayers.length >= 2) {
-        const handCommunityCards = game.getHandCommunityCards();
-        sendToGameRoom(gameId, "communityCardsData", { communityCards: handCommunityCards });
-
-        allPlayers.forEach((player) => {
-          sendToIndividualPlayer(player.id, "playerData", { playerData: player });
-
-          const opponentsData = game.getOpponentPlayers(player.id);
-
-          if (opponentsData.length > 0) {
-            sendToIndividualPlayer(player.id, "opponentsData", { opponentsData });
-          }
-        });
-      }
-    }
   });
 
   socket.on("disconnect", ({ gameId }) => {
