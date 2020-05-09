@@ -1,5 +1,5 @@
 const _ = require("lodash");
-const MAX_PLAYER_LIMIT = 5;
+const MAX_PLAYER_LIMIT = 6;
 
 class PlayerService {
   constructor() {
@@ -15,6 +15,7 @@ class PlayerService {
       id: data.id,
       isActive: false,
       callAmount: 0,
+      minRaiseAmount: 0,
       isDealer: false,
       isSmallBlind: false,
       isBigBlind: false,
@@ -30,7 +31,7 @@ class PlayerService {
 
   updatePlayer(
     playerId,
-    { isActive, isSmallBlind, isBigBlind, isDealer, coins, callAmount, action, playerHand }
+    { isActive, isSmallBlind, isBigBlind, isDealer, coins, callAmount, minRaiseAmount, action, playerHand }
   ) {
     this.players.forEach((player) => {
       if (playerId === player.id) {
@@ -56,6 +57,10 @@ class PlayerService {
 
         if (callAmount !== undefined) {
           player.callAmount = callAmount;
+        }
+
+        if (minRaiseAmount !== undefined) {
+          player.minRaiseAmount = minRaiseAmount;
         }
 
         if (action !== undefined) {

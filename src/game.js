@@ -209,7 +209,7 @@ class Game extends EventEmitter {
         { suit: cards[1].suit, cardValue: cards[1].value },
       ];
 
-      const playerHandData = { playerHand, callAmount: 0 };
+      const playerHandData = { playerHand, callAmount: 0, minRaiseAmount: this.minBet };
 
       // Set dealer and active player
       if (player.position === this.dealer.position) {
@@ -309,9 +309,11 @@ class Game extends EventEmitter {
           repeat = false;
         } else {
           const callAmount = this._getNextPlayersMinCallAmount(nextPlayer);
+          const minRaiseAmount = this.minBet + callAmount;
           this.playerService.updatePlayer(nextPlayer.id, {
             isActive: true,
             callAmount,
+            minRaiseAmount,
           });
           repeat = false;
         }
