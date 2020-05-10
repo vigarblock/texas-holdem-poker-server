@@ -171,61 +171,57 @@ class Game extends EventEmitter {
   _initializePlayerHandsAndSetDealer() {
     const joinedPlayers = this.playerService.getAllPlayers();
 
-    // Find which player is going to be the dealer
     if (!this.dealer) {
       this.dealer = _.find(joinedPlayers, (player) => player.position === 1);
     } else {
       this.dealer = this._getNextPlayer(this.dealer.position);
     }
 
-    // Player blinds
     const smallBlindPlayer = this._getNextPlayer(this.dealer.position);
     const bigBlindPlayer = this._getNextPlayer(smallBlindPlayer.position);
+    const firstActivePlayer = this._getNextPlayer(bigBlindPlayer.position);
 
     joinedPlayers.forEach((player) => {
-      const playerHand = this.handInstance.getPlayerCardHand();
-
-      let initialPlayerContribution = 0;
-      const playerHandData = {
-        playerHand,
+      const playerData = {
+        isActive: false,
+        isDealer: false,
+        isBigBlind: false,
+        isSmallBlind: false,
         callAmount: 0,
         minRaiseAmount: this.minBet,
+        playerHand: this.handInstance.getPlayerCardHand(),
       };
 
-      // Set dealer and active player
+      let initialPlayerContribution = 0;
+
       if (player.position === this.dealer.position) {
-        playerHandData.isActive = true;
-        playerHandData.isDealer = true;
-        playerHandData.isSmallBlind = false;
-      } else {
-        playerHandData.isActive = false;
-        playerHandData.isDealer = false;
-
-        // Set small blind and update pot
-        if (player.position === smallBlindPlayer.position) {
-          playerHandData.isSmallBlind = true;
-          const smallBlindBet = this.minBet / 2;
-          playerHandData.coins = player.coins - smallBlindBet;
-          this.handInstance.addToPot(smallBlindBet);
-          initialPlayerContribution = smallBlindBet;
-          playerHandData.action = { name: "Small Blind", value: smallBlindBet };
-        } else {
-          playerHandData.isSmallBlind = false;
-        }
-
-        // Set big blind and update pot
-        if (player.position === bigBlindPlayer.position) {
-          playerHandData.isBigBlind = true;
-          playerHandData.coins = player.coins - this.minBet;
-          this.handInstance.addToPot(this.minBet);
-          initialPlayerContribution = this.minBet;
-          playerHandData.action = { name: "Big Blind", value: this.minBet };
-        } else {
-          playerHandData.isBigBlind = false;
-        }
+        playerData.isDealer = true;
       }
 
-      this.playerService.updatePlayer(player.id, playerHandData);
+      if (player.position === smallBlindPlayer.position) {
+        playerData.isSmallBlind = true;
+
+        const smallBlindBet = this.minBet / 2;
+        playerData.coins = player.coins - smallBlindBet;
+        this.handInstance.addToPot(smallBlindBet);
+        initialPlayerContribution = smallBlindBet;
+        playerData.action = { name: "Small Blind", value: smallBlindBet };
+      }
+
+      if (player.position === bigBlindPlayer.position) {
+        playerData.isBigBlind = true;
+        playerData.coins = player.coins - this.minBet;
+        this.handInstance.addToPot(this.minBet);
+        initialPlayerContribution = this.minBet;
+        playerData.action = { name: "Big Blind", value: this.minBet };
+      }
+
+      if (player.position === firstActivePlayer.position) {
+        playerData.isActive = true;
+        playerData.callAmount = this.minBet;
+      }
+
+      this.playerService.updatePlayer(player.id, playerData);
       this.handInstance.addPlayerContribution(
         player.id,
         initialPlayerContribution
