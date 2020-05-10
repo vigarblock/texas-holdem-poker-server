@@ -26,6 +26,10 @@ class Hand {
     this.foldedPlayers.push(player);
   }
 
+  addToPot(amount) {
+    this.pot += amount;
+  }
+
   addPlayerContribution(playerId, contribution) {
     const playerExists = _.find(
       this.playerContributions,
@@ -60,7 +64,7 @@ class Hand {
         break;
     }
 
-    console.log('Community Cards', this.communityCards);
+    console.log("Community Cards", this.communityCards);
   }
 
   setAutomaticHandWinner(player) {
@@ -93,12 +97,28 @@ class Hand {
     return [...this.communityCards];
   }
 
-  addToPot(amount) {
-    this.pot += amount;
-  }
-
   getPotTotal() {
     return this.pot;
+  }
+
+  getMinCallAmount(playerId, coins) {
+    let callAmount = 0;
+
+    const playerContribution = this.getPlayerContribution(playerId);
+
+    if (coins > 0) {
+      this.playerContributions.forEach((c) => {
+        if (c.id !== playerId && c.contribution > playerContribution) {
+          callAmount = c.contribution - playerContribution;
+        }
+      });
+    }
+
+    if (callAmount > coins) {
+      callAmount = coins;
+    }
+
+    return callAmount;
   }
 
   clearBetAgreedPlayers() {
@@ -116,14 +136,8 @@ class Hand {
   }
 
   doesPlayerNeedToTakeAction(playerId) {
-    const isInBetList = _.find(
-      this.betAgreedPlayers,
-      (p) => p.id === playerId
-    );
-    const isInFoldedList = _.find(
-      this.foldedPlayers,
-      (p) => p.id === playerId
-    );
+    const isInBetList = _.find(this.betAgreedPlayers, (p) => p.id === playerId);
+    const isInFoldedList = _.find(this.foldedPlayers, (p) => p.id === playerId);
 
     return !isInBetList && !isInFoldedList;
   }
@@ -131,6 +145,53 @@ class Hand {
   hasEveryoneElseFolded(totalPlayers) {
     const foldedPlayers = this.foldedPlayers.length;
     return totalPlayers - foldedPlayers === 1;
+  }
+
+  hasPlayerFolded(playerId) {
+    return _.find(this.foldedPlayers, (f) => f.id === playerId);
+  }
+
+  completeHand(winnerId) {
+    let playersToBeReimbursed = [];
+
+    const winnerContribution = this.getPlayerContribution(winnerId);
+    let winnerCoins = winnerContribution;
+
+    this.playerContributions.forEach((c) => {
+      if (c.id !== winnerId) {
+        if (c.contribution > winnerContribution) {
+          winnerCoins += winnerContribution;
+          c.contribution -= winnerContribution;
+          playersToBeReimbursed.push({
+            id: c.id,
+            reimbursment: c.contribution,
+          });
+        } else {
+          winnerCoins += c.contribution;
+          c.contribution = 0;
+        }
+      }
+    });
+
+    const involvedPlayers = [];
+
+    this.betAgreedPlayers.forEach((player) => {
+      involvedPlayers.push(player);
+    });
+
+    this.foldedPlayers.forEach((player) => {
+      const foldedPlayer = Object.assign({}, player);
+      foldedPlayer.playerHand = [];
+      involvedPlayers.push(foldedPlayer);
+    });
+
+    return {
+      winnerAmount: winnerCoins,
+      communityCards: this.getCommunityCards(),
+      pot: this.pot,
+      playerData: involvedPlayers,
+      playersToBeReimbursed,
+    };
   }
 }
 

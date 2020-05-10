@@ -1,9 +1,9 @@
 const EventEmitter = require("events");
 const _ = require("lodash");
 const CardDeck = require("./cardDeck");
-const Hand = require('./hand');
+const Hand = require("./hand");
 const PlayerService = require("./playerService");
-const bettingState = require('../src/constants/bettingState');
+const bettingState = require("../src/constants/bettingState");
 
 const gameState = {
   WAITING: "WAITING",
@@ -18,7 +18,6 @@ class Game extends EventEmitter {
     this.state = gameState.WAITING;
     this.dealer = null;
     this.minBet = 20;
-    this.hand = {};
 
     this.playerService = new PlayerService();
   }
@@ -187,7 +186,11 @@ class Game extends EventEmitter {
       const playerHand = this.handInstance.getPlayerCardHand();
 
       let initialPlayerContribution = 0;
-      const playerHandData = { playerHand, callAmount: 0, minRaiseAmount: this.minBet };
+      const playerHandData = {
+        playerHand,
+        callAmount: 0,
+        minRaiseAmount: this.minBet,
+      };
 
       // Set dealer and active player
       if (player.position === this.dealer.position) {
@@ -201,11 +204,11 @@ class Game extends EventEmitter {
         // Set small blind and update pot
         if (player.position === smallBlindPlayer.position) {
           playerHandData.isSmallBlind = true;
-          const smallBlindBet = this.minBet/2;
+          const smallBlindBet = this.minBet / 2;
           playerHandData.coins = player.coins - smallBlindBet;
           this.handInstance.addToPot(smallBlindBet);
           initialPlayerContribution = smallBlindBet;
-          playerHandData.action = { name: "Small Blind", value: smallBlindBet}
+          playerHandData.action = { name: "Small Blind", value: smallBlindBet };
         } else {
           playerHandData.isSmallBlind = false;
         }
@@ -216,14 +219,17 @@ class Game extends EventEmitter {
           playerHandData.coins = player.coins - this.minBet;
           this.handInstance.addToPot(this.minBet);
           initialPlayerContribution = this.minBet;
-          playerHandData.action = { name: "Big Blind", value: this.minBet}
+          playerHandData.action = { name: "Big Blind", value: this.minBet };
         } else {
           playerHandData.isBigBlind = false;
         }
       }
 
       this.playerService.updatePlayer(player.id, playerHandData);
-      this.handInstance.addPlayerContribution(player.id, initialPlayerContribution);
+      this.handInstance.addPlayerContribution(
+        player.id,
+        initialPlayerContribution
+      );
     });
   }
 
@@ -255,7 +261,11 @@ class Game extends EventEmitter {
       const nextPlayer = this._getNextPlayer(nextPlayerCalculationPosition);
 
       if (this.handInstance.doesPlayerNeedToTakeAction(nextPlayer.id)) {
-        if (this.handInstance.hasEveryoneElseFolded(this.playerService.getAllPlayers().length)) {
+        if (
+          this.handInstance.hasEveryoneElseFolded(
+            this.playerService.getAllPlayers().length
+          )
+        ) {
           // Make this player the automatic winner
           this.handInstance.setAutomaticHandWinner(nextPlayer);
           this.handInstance.addToBetAgreement(nextPlayer);
@@ -263,7 +273,10 @@ class Game extends EventEmitter {
           this.handInstance.clearBetAgreedPlayers();
           repeat = false;
         } else {
-          const callAmount = this._getNextPlayersMinCallAmount(nextPlayer);
+          const callAmount = this.handInstance.getMinCallAmount(
+            nextPlayer.id,
+            nextPlayer.coins
+          );
           const minRaiseAmount = this.minBet + callAmount;
           this.playerService.updatePlayer(nextPlayer.id, {
             isActive: true,
@@ -273,10 +286,16 @@ class Game extends EventEmitter {
           repeat = false;
         }
       } else {
-        if (this.handInstance.havePlayersAgreedOnBet(this.playerService.getAllPlayers().length)) {
+        if (
+          this.handInstance.havePlayersAgreedOnBet(
+            this.playerService.getAllPlayers().length
+          )
+        ) {
           // If all but 1 player has folded, then automatically award hand win
           if (this.handInstance.betAgreedPlayers.length === 1) {
-            this.handInstance.setAutomaticHandWinner(this.handInstance.betAgreedPlayers[0]);
+            this.handInstance.setAutomaticHandWinner(
+              this.handInstance.betAgreedPlayers[0]
+            );
           }
 
           onBetAgreement();
@@ -289,52 +308,21 @@ class Game extends EventEmitter {
     }
   }
 
-  _getNextPlayersMinCallAmount(nextPlayer) {
-    let callAmount = 0;
-
-    const nextPlayerContribution = this.handInstance.getPlayerContribution(nextPlayer.id);
-
-    if (nextPlayer.coins > 0) {
-      this.handInstance.playerContributions.forEach((contributor) => {
-        if (
-          contributor.id !== nextPlayer.id &&
-          contributor.contribution > nextPlayerContribution
-        ) {
-          callAmount = contributor.contribution - nextPlayerContribution;
-        }
-      });
-    }
-
-    if (callAmount > nextPlayer.coins) {
-      callAmount = nextPlayer.coins;
-    }
-
-    return callAmount;
-  }
-
   _makePlayerActivePostBetAgreement() {
-    // Find who to make active again
+    //  Game Rule: The next active player to the left(next position)
+    //  of the dealer is first to decide after first bet agreement.
     let nextActivePlayer;
-    const hasDealerFolded = _.find(
-      this.handInstance.foldedPlayers,
-      (foldedPlayer) => foldedPlayer.id === this.dealer.id
-    );
 
-    if (!hasDealerFolded) {
-      nextActivePlayer = this.dealer;
-    } else {
-      let repeat = true;
-      while (repeat) {
-        const nextPlayer = this._getNextPlayer(this.dealer.position);
-        const hasNextPlayerFolded = _.find(
-          this.handInstance.foldedPlayers,
-          (foldedPlayer) => foldedPlayer.id === nextPlayer.id
-        );
+    let repeat = true;
+    while (repeat) {
+      const nextPlayer = this._getNextPlayer(this.dealer.position);
+      const hasNextPlayerFolded = this.handInstance.hasPlayerFolded(
+        nextPlayer.id
+      );
 
-        if (!hasNextPlayerFolded) {
-          nextActivePlayer = nextPlayer;
-          repeat = false;
-        }
+      if (!hasNextPlayerFolded) {
+        nextActivePlayer = nextPlayer;
+        repeat = false;
       }
     }
 
@@ -421,53 +409,27 @@ class Game extends EventEmitter {
   }
 
   _completeHand(winningPlayer) {
-    // Determine hand winner and their portion of the pot.
-    // Return the remaining values if any to other players.
-    const winnerId = winningPlayer.id;
-    const winnerContribution = this.handInstance.getPlayerContribution(winnerId);
+    const hand = this.handInstance.completeHand(winningPlayer.id);
 
-    let winnerCoins = winnerContribution;
-
-    this.handInstance.playerContributions.forEach((contributor) => {
-      if (contributor.id !== winnerId) {
-        if (contributor.contribution > winnerContribution) {
-          winnerCoins += winnerContribution;
-          contributor.contribution -= winnerContribution;
-
-          // Reimburse the remaing amount back to the player
-          const contributedPlayer = this.playerService.getPlayer(
-            contributor.id
-          );
-          const updatedPlayerCoins =
-            contributedPlayer.coins + contributor.contribution;
-          this.updatePlayer(player, { coins: updatedPlayerCoins });
-        } else {
-          winnerCoins += contributor.contribution;
-          contributor.contribution = 0;
-        }
-      }
+    // Update winner
+    this.updatePlayer(winningPlayer.id, {
+      coins: winningPlayer.coins + hand.winnerAmount,
     });
 
-    const winnerCoinStack = winningPlayer.coins + winnerCoins;
-    this.updatePlayer(winningPlayer.id, { coins: winnerCoinStack });
-
-    const playerData = [];
-
-    this.handInstance.betAgreedPlayers.forEach((player) => {
-      playerData.push(player);
-    });
-
-    this.handInstance.foldedPlayers.forEach((player) => {
-      const foldedPlayer = Object.assign({}, player);
-      foldedPlayer.playerHand = [];
-      playerData.push(foldedPlayer);
+    // Update reimbursments
+    hand.playersToBeReimbursed.forEach((p) => {
+      const contributedPlayer = this.playerService.getPlayer(p.id);
+      this.updatePlayer(player, {
+        coins: contributedPlayer.coins + p.reimbursment,
+      });
     });
 
     const handWinnerData = {
-      communityCards: this.getHandCommunityCards(),
-      pot: this.handInstance.pot,
+      communityCards: hand.communityCards,
+      pot: hand.pot,
       winner: winningPlayer.name,
-      playerData,
+      winnerAmount: hand.winnerAmount,
+      playerData: hand.playerData,
     };
 
     this.emit("handWinner", handWinnerData);
