@@ -9,17 +9,30 @@ const gameState = {
   WAITING: "WAITING",
   READYTOSTART: "READYTOSTART",
   INPROGRESS: "INPROGRESS",
+  WAITINGFORPLAYER: "WAITINGFORPLAYER",
 };
 
 class Game extends EventEmitter {
-  constructor(id) {
+  constructor(id, startingChipsPerPlayer) {
     super();
     this.id = id;
     this.state = gameState.WAITING;
     this.dealer = null;
     this.minBet = 20;
+    this.startingChipsPerPlayer = startingChipsPerPlayer;
 
     this.playerService = new PlayerService();
+  }
+
+  initializeGame() {
+    const gamePlayers = this.playerService.getAllPlayers();
+    if (gamePlayers.length < 2) {
+      throw Error("At least 2 players need to join before starting a game");
+    }
+
+    gamePlayers.forEach((player) => {
+      this.playerService.updatePlayer(player.id, { coins: this.startingChipsPerPlayer });
+    });
   }
 
   startHand() {
@@ -30,6 +43,7 @@ class Game extends EventEmitter {
   }
 
   playerAction(playerId, action, actionData) {
+    this.state = gameState.INPROGRESS;
     const player = this.playerService.getPlayer(playerId);
 
     switch (this.handInstance.state) {
@@ -227,6 +241,8 @@ class Game extends EventEmitter {
         initialPlayerContribution
       );
     });
+
+    this.state = gameState.WAITINGFORPLAYER;
   }
 
   _getNextPlayer(currentPlayerPosition) {
@@ -415,7 +431,7 @@ class Game extends EventEmitter {
     // Update reimbursments
     hand.playersToBeReimbursed.forEach((p) => {
       const contributedPlayer = this.playerService.getPlayer(p.id);
-      this.updatePlayer(player, {
+      this.updatePlayer(p.id, {
         coins: contributedPlayer.coins + p.reimbursment,
       });
     });
@@ -430,6 +446,37 @@ class Game extends EventEmitter {
 
     this.emit("handWinner", handWinnerData);
     this.state = gameState.WAITING;
+  }
+
+  emitPlayerUpdates() {
+    const playerUpdates = [];
+
+    this.playerService.getAllPlayers().forEach((player) => {
+      const playerUpdate = {
+        id: player.id,
+        playerData: player,
+        opponentsData: null,
+      };
+
+      const opponentsData = this.playerService.getOpponentPlayers(player.id);
+
+      if (opponentsData.length > 0) {
+        playerUpdate.opponentsData = opponentsData;
+      }
+
+      playerUpdates.push(playerUpdate);
+    });
+
+    this.emit("playerUpdates", playerUpdates);
+  }
+
+  emitCommunityUpdates() {
+    const communityUpdates = {
+      communityCards: this.getHandCommunityCards(),
+      pot: this.getHandPot(),
+    };
+
+    this.emit("communityUpdates", communityUpdates);
   }
 }
 
