@@ -1,22 +1,15 @@
 const EventEmitter = require("events");
 const _ = require("lodash");
-const CardDeck = require("./cardDeck");
 const Hand = require("./hand");
 const PlayerService = require("./playerService");
 const bettingState = require("../src/constants/bettingState");
-
-const gameState = {
-  WAITING: "WAITING",
-  READYTOSTART: "READYTOSTART",
-  INPROGRESS: "INPROGRESS",
-  WAITINGFORPLAYER: "WAITINGFORPLAYER",
-};
+const gameState = require("../src/constants/gameState");
 
 class Game extends EventEmitter {
   constructor(id, startingChipsPerPlayer) {
     super();
     this.id = id;
-    this.state = gameState.WAITING;
+    this.state = gameState.WAITING_FOR_GAME_START;
     this.dealer = null;
     this.minBet = 20;
     this.startingChipsPerPlayer = startingChipsPerPlayer;
@@ -33,17 +26,19 @@ class Game extends EventEmitter {
     gamePlayers.forEach((player) => {
       this.playerService.updatePlayer(player.id, { coins: this.startingChipsPerPlayer });
     });
+
+    this.state = gameState.GAME_STARTED;
   }
 
   startHand() {
-    this.state = gameState.INPROGRESS;
+    this.state = gameState.HAND_IN_PROGRESS;
     this.handInstance = new Hand();
     this.handInstance.initializeHand();
     this._initializePlayerHandsAndSetDealer();
   }
 
   playerAction(playerId, action, actionData) {
-    this.state = gameState.INPROGRESS;
+    this.state = gameState.HAND_IN_PROGRESS;
     const player = this.playerService.getPlayer(playerId);
 
     switch (this.handInstance.state) {
@@ -131,6 +126,10 @@ class Game extends EventEmitter {
   }
 
   addPlayerToGame({ id, name, socketId }) {
+    if(this.state !== gameState.WAITING_FOR_GAME_START) {
+      throw Error("Game has already started");
+    }
+
     this.playerService.addPlayer({ id, name, socketId });
   }
 
@@ -146,12 +145,12 @@ class Game extends EventEmitter {
     );
 
     if (!playersWaitingToJoin) {
-      this.state = gameState.READYTOSTART;
+      this.state = gameState.READY_TO_START_HAND;
     }
   }
 
   isReadyToStartNewHand() {
-    return this.state === gameState.READYTOSTART;
+    return this.state === gameState.READY_TO_START_HAND;
   }
 
   updatePlayer(playerId, playerData) {
@@ -241,8 +240,6 @@ class Game extends EventEmitter {
         initialPlayerContribution
       );
     });
-
-    this.state = gameState.WAITINGFORPLAYER;
   }
 
   _getNextPlayer(currentPlayerPosition) {
@@ -445,7 +442,7 @@ class Game extends EventEmitter {
     };
 
     this.emit("handWinner", handWinnerData);
-    this.state = gameState.WAITING;
+    this.state = gameState.HAND_ENDED;
   }
 
   emitPlayerUpdates() {
