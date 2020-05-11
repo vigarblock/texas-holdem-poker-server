@@ -130,8 +130,8 @@ class Game extends EventEmitter {
     }
   }
 
-  addPlayerToGame({ id, name, playerSessionId }) {
-    this.playerService.addPlayer({ id, name, playerSessionId });
+  addPlayerToGame({ id, name, socketId }) {
+    this.playerService.addPlayer({ id, name, socketId });
   }
 
   playerContinue(playerId) {
@@ -453,7 +453,7 @@ class Game extends EventEmitter {
 
     this.playerService.getAllPlayers().forEach((player) => {
       const playerUpdate = {
-        id: player.id,
+        socketId: player.socketId,
         playerData: player,
         opponentsData: null,
       };
