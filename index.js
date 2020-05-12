@@ -48,10 +48,12 @@ io.on("connection", (socket) => {
 
   socket.on("startGame", ({ gameId }) => {
     const game = GameManager.getGameInstance(gameId);
-    game.initializeGame();
-    game.startHand();
-    game.emitPlayerUpdates();
-    io.in(gameId).emit("gameStarted");
+    if(!game.hasGameStarted()) {
+      game.initializeGame();
+      game.startHand();
+      game.emitPlayerUpdates();
+      io.in(gameId).emit("gameStarted");
+    }
   });
 
   socket.on("activePlayerAction", ({ gameId, playerId, action, data }) => {

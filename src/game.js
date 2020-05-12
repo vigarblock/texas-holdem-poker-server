@@ -26,13 +26,13 @@ class Game extends EventEmitter {
       throw Error("At least 2 players need to join before starting a game");
     }
 
+    this.state = gameState.GAME_STARTED;
+
     gamePlayers.forEach((player) => {
       this.playerService.updatePlayer(player.id, {
         coins: this.startingChipsPerPlayer,
       });
     });
-
-    this.state = gameState.GAME_STARTED;
   }
 
   startHand() {
@@ -215,6 +215,10 @@ class Game extends EventEmitter {
 
   isReadyToStartNewHand() {
     return this.state === gameState.READY_TO_START_HAND;
+  }
+
+  hasGameStarted() {
+    return this.state !== gameState.WAITING_FOR_GAME_START;
   }
 
   updatePlayer(playerId, playerData) {
