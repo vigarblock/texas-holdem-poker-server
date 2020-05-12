@@ -4,6 +4,7 @@ const Hand = require("./hand");
 const PlayerService = require("./playerService");
 const bettingState = require("../src/constants/bettingState");
 const gameState = require("../src/constants/gameState");
+const playerWaitTimeoutMs = 30000;
 
 class Game extends EventEmitter {
   constructor(id, startingChipsPerPlayer) {
@@ -11,6 +12,8 @@ class Game extends EventEmitter {
     this.id = id;
     this.state = gameState.WAITING_FOR_GAME_START;
     this.dealer = null;
+    this.activePlayerId = null;
+    this.waitingForPlayerResponse = null;
     this.minBet = 20;
     this.startingChipsPerPlayer = startingChipsPerPlayer;
 
@@ -24,7 +27,9 @@ class Game extends EventEmitter {
     }
 
     gamePlayers.forEach((player) => {
-      this.playerService.updatePlayer(player.id, { coins: this.startingChipsPerPlayer });
+      this.playerService.updatePlayer(player.id, {
+        coins: this.startingChipsPerPlayer,
+      });
     });
 
     this.state = gameState.GAME_STARTED;
@@ -37,8 +42,71 @@ class Game extends EventEmitter {
     this._initializePlayerHandsAndSetDealer();
   }
 
+  _initializePlayerHandsAndSetDealer() {
+    const joinedPlayers = this.playerService.getAllPlayers();
+
+    if (!this.dealer) {
+      this.dealer = _.find(joinedPlayers, (player) => player.position === 1);
+    } else {
+      this.dealer = this._getNextPlayer(this.dealer.position);
+    }
+
+    const smallBlindPlayer = this._getNextPlayer(this.dealer.position);
+    const bigBlindPlayer = this._getNextPlayer(smallBlindPlayer.position);
+    const firstActivePlayer = this._getNextPlayer(bigBlindPlayer.position);
+
+    joinedPlayers.forEach((player) => {
+      const playerData = {
+        isActive: false,
+        isDealer: false,
+        isBigBlind: false,
+        isSmallBlind: false,
+        callAmount: 0,
+        minRaiseAmount: this.minBet,
+        playerHand: this.hand.getPlayerCardHand(),
+      };
+
+      let initialPlayerContribution = 0;
+
+      if (player.position === this.dealer.position) {
+        playerData.isDealer = true;
+      }
+
+      if (player.position === smallBlindPlayer.position) {
+        playerData.isSmallBlind = true;
+
+        const smallBlindBet = this.minBet / 2;
+        playerData.coins = player.coins - smallBlindBet;
+        this.hand.addToPot(smallBlindBet);
+        initialPlayerContribution = smallBlindBet;
+        playerData.action = { name: "Small Blind", value: smallBlindBet };
+      }
+
+      if (player.position === bigBlindPlayer.position) {
+        playerData.isBigBlind = true;
+        playerData.coins = player.coins - this.minBet;
+        this.hand.addToPot(this.minBet);
+        initialPlayerContribution = this.minBet;
+        playerData.action = { name: "Big Blind", value: this.minBet };
+      }
+
+      if (player.position === firstActivePlayer.position) {
+        this.activePlayerId = player.id;
+        playerData.isActive = true;
+        playerData.callAmount = this.minBet;
+      }
+
+      this.playerService.updatePlayer(player.id, playerData);
+      this.hand.addPlayerContribution(player.id, initialPlayerContribution);
+    });
+
+    this.waitingForPlayerResponse = this.startWaitingForPlayerResponse();
+  }
+
   playerAction(playerId, action, actionData) {
     this.state = gameState.HAND_IN_PROGRESS;
+    this.stopWaitingForPlayerResponse();
+
     const player = this.playerService.getPlayer(playerId);
 
     switch (this.hand.state) {
@@ -126,10 +194,6 @@ class Game extends EventEmitter {
   }
 
   addPlayerToGame({ id, name, socketId }) {
-    if(this.state !== gameState.WAITING_FOR_GAME_START) {
-      throw Error("Game has already started");
-    }
-
     this.playerService.addPlayer({ id, name, socketId });
   }
 
@@ -179,67 +243,6 @@ class Game extends EventEmitter {
 
   getHandPot() {
     return this.hand.getPotTotal();
-  }
-
-  _initializePlayerHandsAndSetDealer() {
-    const joinedPlayers = this.playerService.getAllPlayers();
-
-    if (!this.dealer) {
-      this.dealer = _.find(joinedPlayers, (player) => player.position === 1);
-    } else {
-      this.dealer = this._getNextPlayer(this.dealer.position);
-    }
-
-    const smallBlindPlayer = this._getNextPlayer(this.dealer.position);
-    const bigBlindPlayer = this._getNextPlayer(smallBlindPlayer.position);
-    const firstActivePlayer = this._getNextPlayer(bigBlindPlayer.position);
-
-    joinedPlayers.forEach((player) => {
-      const playerData = {
-        isActive: false,
-        isDealer: false,
-        isBigBlind: false,
-        isSmallBlind: false,
-        callAmount: 0,
-        minRaiseAmount: this.minBet,
-        playerHand: this.hand.getPlayerCardHand(),
-      };
-
-      let initialPlayerContribution = 0;
-
-      if (player.position === this.dealer.position) {
-        playerData.isDealer = true;
-      }
-
-      if (player.position === smallBlindPlayer.position) {
-        playerData.isSmallBlind = true;
-
-        const smallBlindBet = this.minBet / 2;
-        playerData.coins = player.coins - smallBlindBet;
-        this.hand.addToPot(smallBlindBet);
-        initialPlayerContribution = smallBlindBet;
-        playerData.action = { name: "Small Blind", value: smallBlindBet };
-      }
-
-      if (player.position === bigBlindPlayer.position) {
-        playerData.isBigBlind = true;
-        playerData.coins = player.coins - this.minBet;
-        this.hand.addToPot(this.minBet);
-        initialPlayerContribution = this.minBet;
-        playerData.action = { name: "Big Blind", value: this.minBet };
-      }
-
-      if (player.position === firstActivePlayer.position) {
-        playerData.isActive = true;
-        playerData.callAmount = this.minBet;
-      }
-
-      this.playerService.updatePlayer(player.id, playerData);
-      this.hand.addPlayerContribution(
-        player.id,
-        initialPlayerContribution
-      );
-    });
   }
 
   _getNextPlayer(currentPlayerPosition) {
@@ -292,6 +295,8 @@ class Game extends EventEmitter {
             callAmount,
             minRaiseAmount,
           });
+          this.activePlayerId = nextPlayer.id;
+          this.waitingForPlayerResponse = this.startWaitingForPlayerResponse();
           repeat = false;
         }
       } else {
@@ -302,9 +307,7 @@ class Game extends EventEmitter {
         ) {
           // If all but 1 player has folded, then automatically award hand win
           if (this.hand.betAgreedPlayers.length === 1) {
-            this.hand.setAutomaticHandWinner(
-              this.hand.betAgreedPlayers[0]
-            );
+            this.hand.setAutomaticHandWinner(this.hand.betAgreedPlayers[0]);
           }
 
           onBetAgreement();
@@ -325,9 +328,7 @@ class Game extends EventEmitter {
     let repeat = true;
     while (repeat) {
       const nextPlayer = this._getNextPlayer(this.dealer.position);
-      const hasNextPlayerFolded = this.hand.hasPlayerFolded(
-        nextPlayer.id
-      );
+      const hasNextPlayerFolded = this.hand.hasPlayerFolded(nextPlayer.id);
 
       if (!hasNextPlayerFolded) {
         nextActivePlayer = nextPlayer;
@@ -340,6 +341,8 @@ class Game extends EventEmitter {
       callAmount: 0,
       minRaiseAmount: this.minBet,
     });
+    this.activePlayerId = nextActivePlayer.id;
+    this.waitingForPlayerResponse = this.startWaitingForPlayerResponse();
   }
 
   _handlePlayerAction(player, action, actionData) {
@@ -388,6 +391,32 @@ class Game extends EventEmitter {
       this.hand.clearBetAgreedPlayers();
       this.hand.addToBetAgreement(player);
     }
+  }
+
+  startWaitingForPlayerResponse() {
+    this.state = gameState.WAITING_FOR_PLAYER;
+    const timeout = setTimeout(
+      (playerId) => {
+        if (
+          this.state === gameState.WAITING_FOR_PLAYER &&
+          playerId === this.activePlayerId
+        ) {
+          this.playerAction(this.activePlayerId, "fold", null);
+          this.emitPlayerUpdates();
+          this.emitCommunityUpdates();
+        }
+      },
+      playerWaitTimeoutMs,
+      this.activePlayerId
+    );
+
+    return timeout;
+  }
+
+  stopWaitingForPlayerResponse() {
+    this.activePlayerId = null;
+    clearTimeout(this.waitingForPlayerResponse);
+    this.waitingForPlayerResponse = null;
   }
 
   _shouldGameEnd() {
