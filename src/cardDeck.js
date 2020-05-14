@@ -1,19 +1,4 @@
-const suits = ["Spade", "Diamond", "Club", "Heart"];
-const values = [
-  "A",
-  "2",
-  "3",
-  "4",
-  "5",
-  "6",
-  "7",
-  "8",
-  "9",
-  "10",
-  "J",
-  "Q",
-  "K",
-];
+const { suits, values } = require('../src/constants/cards');
 
 class CardDeck {
   constructor() {
@@ -23,8 +8,6 @@ class CardDeck {
   }
 
   shuffle() {
-    // for 1000 turns
-    // switch the values of two random cards
     for (var i = 0; i < 1000; i++) {
       var location1 = Math.floor(Math.random() * this.deck.length);
       var location2 = Math.floor(Math.random() * this.deck.length);
@@ -41,8 +24,6 @@ class CardDeck {
       for (let index = 0; index < numOfCards; index++) {
         const position = Math.floor(Math.random() * this.totalCards);
         cards.push(this.deck[position]);
-
-        // TODO: Ensure cards are not null
         this.deck.splice(position, 1);
         this.totalCards -= 1;
       }
