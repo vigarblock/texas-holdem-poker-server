@@ -1,5 +1,5 @@
 const _ = require("lodash");
-const { values: orderCardValues } = require("../src/constants/cards");
+const { values: rankedCardValues } = require("../src/constants/cards");
 
 const determineWinningHand = (players, communityCards) => {
   // For each player
@@ -62,8 +62,7 @@ const isStraightFlush = (cards) => {
         }
       });
 
-      const orderedCards = _sortCardsByValues(flushCards);
-      outcome = _isInStraightOrder(orderedCards);
+      outcome = _isInStraightOrder(flushCards);
     }
   });
 
@@ -84,23 +83,34 @@ const isFlush = (cards) => {
 };
 
 const _isInStraightOrder = (cards) => {
-  // TODO
-}
+  const sortedCards = _sortCardsByValues(cards);
+
+  for (let i = 0; i < sortedCards.length - 1; i++) {
+    const index = _.findIndex(rankedCardValues, (o) => o === sortedCards[i].value);
+    const nextRankValue = rankedCardValues[index + 1];
+
+    if (sortedCards[i + 1].value !== nextRankValue) {
+      return false;
+    }
+  }
+
+  return true;
+};
 
 const _sortCardsByValues = (cards) => {
   const valueIndexes = [];
 
-  cards.forEach(card => {
-    const index = _.findIndex(orderCardValues, o => o === card.value);
+  cards.forEach((card) => {
+    const index = _.findIndex(rankedCardValues, (o) => o === card.value);
     valueIndexes.push(index);
   });
 
   const sortedValueIndexes = valueIndexes.sort((a, b) => a - b);
   const sortedCards = [];
 
-  sortedValueIndexes.forEach(index => {
-    const value = orderCardValues[index];
-    const matchingCard = _.find(cards, c => c.value === value);
+  sortedValueIndexes.forEach((index) => {
+    const value = rankedCardValues[index];
+    const matchingCard = _.find(cards, (c) => c.value === value);
     sortedCards.push(matchingCard);
   });
 

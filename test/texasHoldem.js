@@ -48,13 +48,13 @@ describe("Texas Holdem", () => {
     it("Should return true when a straight flush is found", () => {
       // Arrange
       const cards = [
-        { suit: "Heart", value: "6" },
-        { suit: "Spade", value: "A" },
-        { suit: "Diamond", value: "2" },
-        { suit: "Heart", value: "7" },
-        { suit: "Heart", value: "9" },
-        { suit: "Heart", value: "8" },
+        { suit: "Heart", value: "Q" },
+        { suit: "Heart", value: "K" },
+        { suit: "Spade", value: "3" },
+        { suit: "Heart", value: "J" },
         { suit: "Heart", value: "10" },
+        { suit: "Diamond", value: "3" },
+        { suit: "Heart", value: "A" },
       ];
 
       // Act
@@ -62,6 +62,44 @@ describe("Texas Holdem", () => {
 
       // Assert
       assert.equal(result, true);
+    });
+
+    it("Should return false given straight ranks but not flush suits", () => {
+      // Arrange
+      const cards = [
+        { suit: "Heart", value: "Q" },
+        { suit: "Heart", value: "K" },
+        { suit: "Spade", value: "3" },
+        { suit: "Heart", value: "J" },
+        { suit: "Heart", value: "10" },
+        { suit: "Diamond", value: "3" },
+        { suit: "Diamond", value: "A" },
+      ];
+
+      // Act
+      const result = texasHoldem.isStraightFlush(cards);
+
+      // Assert
+      assert.equal(result, false);
+    });
+
+    it("Should return false given flush suits but not straight ranks", () => {
+      // Arrange
+      const cards = [
+        { suit: "Heart", value: "Q" },
+        { suit: "Heart", value: "K" },
+        { suit: "Spade", value: "3" },
+        { suit: "Heart", value: "J" },
+        { suit: "Heart", value: "5" },
+        { suit: "Diamond", value: "3" },
+        { suit: "Heart", value: "A" },
+      ];
+
+      // Act
+      const result = texasHoldem.isStraightFlush(cards);
+
+      // Assert
+      assert.equal(result, false);
     });
   });
 });
