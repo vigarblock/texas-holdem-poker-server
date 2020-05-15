@@ -1,6 +1,5 @@
 const suits = ["Spade", "Diamond", "Club", "Heart"];
 const values = [
-  "A",
   "2",
   "3",
   "4",
@@ -13,6 +12,7 @@ const values = [
   "J",
   "Q",
   "K",
+  "A",
 ];
 
 module.exports = { suits, values }

@@ -1,4 +1,5 @@
 const _ = require("lodash");
+const { values: orderCardValues } = require("../src/constants/cards");
 
 const determineWinningHand = (players, communityCards) => {
   // For each player
@@ -21,6 +22,92 @@ const determineWinningHand = (players, communityCards) => {
 const getHighestRank = (cards) => {};
 
 const isRoyalFlush = (cards) => {
+  let outcome = false;
+  const suits = _getSuitCount(cards);
+
+  Object.keys(suits).forEach((key) => {
+    if (suits[key] === 5) {
+      let winningValues = 0;
+      cards.forEach((card) => {
+        if (
+          (card.suit === key && card.value === "10") ||
+          card.value === "J" ||
+          card.value === "Q" ||
+          card.value === "K" ||
+          card.value === "A"
+        ) {
+          winningValues += 1;
+        }
+      });
+
+      if (winningValues === 5) {
+        outcome = true;
+      }
+    }
+  });
+
+  return outcome;
+};
+
+const isStraightFlush = (cards) => {
+  let outcome = false;
+  const suits = _getSuitCount(cards);
+
+  Object.keys(suits).forEach((key) => {
+    if (suits[key] === 5) {
+      const flushCards = [];
+      cards.forEach((card) => {
+        if (card.suit === key) {
+          flushCards.push(card);
+        }
+      });
+
+      const orderedCards = _sortCardsByValues(flushCards);
+      outcome = _isInStraightOrder(orderedCards);
+    }
+  });
+
+  return outcome;
+};
+
+const isFlush = (cards) => {
+  let outcome = false;
+  const suits = _getSuitCount(cards);
+
+  Object.keys(suits).forEach((key) => {
+    if (suits[key] === 5) {
+      outcome = true;
+    }
+  });
+
+  return outcome;
+};
+
+const _isInStraightOrder = (cards) => {
+  // TODO
+}
+
+const _sortCardsByValues = (cards) => {
+  const valueIndexes = [];
+
+  cards.forEach(card => {
+    const index = _.findIndex(orderCardValues, o => o === card.value);
+    valueIndexes.push(index);
+  });
+
+  const sortedValueIndexes = valueIndexes.sort((a, b) => a - b);
+  const sortedCards = [];
+
+  sortedValueIndexes.forEach(index => {
+    const value = orderCardValues[index];
+    const matchingCard = _.find(cards, c => c.value === value);
+    sortedCards.push(matchingCard);
+  });
+
+  return sortedCards;
+};
+
+_getSuitCount = (cards) => {
   const suits = {};
 
   for (let i = 0; i < cards.length; i++) {
@@ -33,30 +120,6 @@ const isRoyalFlush = (cards) => {
     }
   }
 
-  Object.keys(suits).forEach((key) => {
-    if (suits[key] === 5) {
-      let winningValues = 0;
-      cards.forEach((card) => {
-        if (card.suit === suits[key]) {
-          if (
-            card.value === "10" ||
-            card.value === "J" ||
-            card.value === "Q" ||
-            card.value === "K" ||
-            card.value === "A"
-          ) {
-            winningValues += 1;
-          }
-        }
-      });
-
-      if (winningValues === 5) {
-        return true;
-      }
-    }
-  });
-
-  return false;
+  return suits;
 };
-
-module.exports = { isRoyalFlush };
+module.exports = { isRoyalFlush, isStraightFlush, isFlush };
