@@ -62,7 +62,7 @@ const isStraightFlush = (cards) => {
         }
       });
 
-      outcome = _isInStraightOrder(flushCards);
+      outcome = isStraight(flushCards);
     }
   });
 
@@ -82,19 +82,77 @@ const isFlush = (cards) => {
   return outcome;
 };
 
-const _isInStraightOrder = (cards) => {
+const isStraight = (cards) => {
   const sortedCards = _sortCardsByValues(cards);
+  const uniqueSortedCardValues = [];
 
-  for (let i = 0; i < sortedCards.length - 1; i++) {
-    const index = _.findIndex(rankedCardValues, (o) => o === sortedCards[i].value);
+  sortedCards.forEach((card) => {
+    if (!_.find(uniqueSortedCardValues, (c) => c === card.value)) {
+      uniqueSortedCardValues.push(card.value);
+    }
+  });
+
+  let inSequenceCount = 1;
+
+  for (let i = 0; i < uniqueSortedCardValues.length - 1; i++) {
+    const index = _.findIndex(
+      rankedCardValues,
+      (o) => o === uniqueSortedCardValues[i]
+    );
     const nextRankValue = rankedCardValues[index + 1];
 
-    if (sortedCards[i + 1].value !== nextRankValue) {
-      return false;
+    if (uniqueSortedCardValues[i + 1] === nextRankValue) {
+      inSequenceCount++;
+    } else {
+      inSequenceCount = 1;
     }
   }
 
-  return true;
+  return inSequenceCount === 5;
+};
+
+const isFourOfAKind = (cards) => {
+  let outcome = false;
+  const values = _getValuesCount(cards);
+
+  Object.keys(values).forEach((key) => {
+    if (values[key] >= 4) {
+      outcome = true;
+    }
+  });
+
+  return outcome;
+};
+
+const isThreeOfAKind = (cards) => {
+  let outcome = false;
+  const values = _getValuesCount(cards);
+
+  Object.keys(values).forEach((key) => {
+    if (values[key] >= 3) {
+      outcome = true;
+    }
+  });
+
+  return outcome;
+};
+
+const isFullHouse = (cards) => {
+  const values = _getValuesCount(cards);
+  let hasThreeOfAKind = false;
+  let hasPair = false;
+
+  Object.keys(values).forEach((key) => {
+    if (values[key] >= 3) {
+      hasThreeOfAKind = true;
+    }
+
+    if (values[key] === 2) {
+      hasPair = true;
+    }
+  });
+
+  return hasThreeOfAKind && hasPair;
 };
 
 const _sortCardsByValues = (cards) => {
@@ -117,7 +175,7 @@ const _sortCardsByValues = (cards) => {
   return sortedCards;
 };
 
-_getSuitCount = (cards) => {
+const _getSuitCount = (cards) => {
   const suits = {};
 
   for (let i = 0; i < cards.length; i++) {
@@ -132,4 +190,29 @@ _getSuitCount = (cards) => {
 
   return suits;
 };
-module.exports = { isRoyalFlush, isStraightFlush, isFlush };
+
+const _getValuesCount = (cards) => {
+  const values = {};
+
+  for (let i = 0; i < cards.length; i++) {
+    const card = cards[i];
+
+    if (!values[card.value]) {
+      values[card.value] = 1;
+    } else {
+      values[card.value] += 1;
+    }
+  }
+
+  return values;
+};
+
+module.exports = {
+  isRoyalFlush,
+  isStraightFlush,
+  isFlush,
+  isStraight,
+  isFourOfAKind,
+  isFullHouse,
+  isThreeOfAKind,
+};
