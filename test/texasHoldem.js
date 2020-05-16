@@ -300,4 +300,106 @@ describe("Texas Holdem", () => {
       assert.equal(result, false);
     });
   });
+
+  describe("Is Two Pair", () => {
+    it("Should return true when two pair is found", () => {
+      // Arrange
+      const cards = [
+        { suit: "Spade", value: "Q" },
+        { suit: "Heart", value: "Q" },
+        { suit: "Spade", value: "K" },
+        { suit: "Heart", value: "J" },
+        { suit: "Club", value: "Q" },
+        { suit: "Diamond", value: "J" },
+        { suit: "Heart", value: "2" },
+      ];
+
+      // Act
+      const result = texasHoldem.isTwoPair(cards);
+
+      // Assert
+      assert.equal(result, true);
+    });
+
+    it("Should return false when two pair is not found", () => {
+      // Arrange
+      const cards = [
+        { suit: "Heart", value: "2" },
+        { suit: "Heart", value: "K" },
+        { suit: "Spade", value: "K" },
+        { suit: "Heart", value: "J" },
+        { suit: "Heart", value: "5" },
+        { suit: "Diamond", value: "3" },
+        { suit: "Heart", value: "A" },
+      ];
+
+      // Act
+      const result = texasHoldem.isTwoPair(cards);
+
+      // Assert
+      assert.equal(result, false);
+    });
+  });
+
+  describe("Is One Pair", () => {
+    it("Should return true when one pair is found", () => {
+      // Arrange
+      const cards = [
+        { suit: "Spade", value: "Q" },
+        { suit: "Heart", value: "Q" },
+        { suit: "Spade", value: "K" },
+        { suit: "Heart", value: "J" },
+        { suit: "Club", value: "Q" },
+        { suit: "Diamond", value: "J" },
+        { suit: "Heart", value: "2" },
+      ];
+
+      // Act
+      const result = texasHoldem.isOnePair(cards);
+
+      // Assert
+      assert.equal(result, true);
+    });
+
+    it("Should return false when one pair is not found", () => {
+      // Arrange
+      const cards = [
+        { suit: "Heart", value: "2" },
+        { suit: "Heart", value: "K" },
+        { suit: "Spade", value: "4" },
+        { suit: "Heart", value: "J" },
+        { suit: "Heart", value: "5" },
+        { suit: "Diamond", value: "3" },
+        { suit: "Heart", value: "A" },
+      ];
+
+      // Act
+      const result = texasHoldem.isOnePair(cards);
+
+      // Assert
+      assert.equal(result, false);
+    });
+  });
+
+  describe("Get High Card", () => {
+    it("Should return card with highest rank", () => {
+      // Arrange
+      const cards = [
+        { suit: "Spade", value: "Q" },
+        { suit: "Heart", value: "Q" },
+        { suit: "Spade", value: "K" },
+        { suit: "Heart", value: "J" },
+        { suit: "Club", value: "Q" },
+        { suit: "Diamond", value: "J" },
+        { suit: "Heart", value: "2" },
+      ];
+
+      // Act
+      const result = texasHoldem.getHighCard(cards);
+
+      // Assert
+      assert.notEqual(result, undefined);
+      assert.equal(result.value, "K");
+    });
+  });
 });

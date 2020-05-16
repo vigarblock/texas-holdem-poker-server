@@ -137,6 +137,32 @@ const isThreeOfAKind = (cards) => {
   return outcome;
 };
 
+const isTwoPair = (cards) => {
+  let pairCount = 0;
+  const values = _getValuesCount(cards);
+
+  Object.keys(values).forEach((key) => {
+    if (values[key] >= 2) {
+      pairCount++;
+    }
+  });
+
+  return pairCount === 2;
+}
+
+const isOnePair = (cards) => {
+  let outcome = false;
+  const values = _getValuesCount(cards);
+
+  Object.keys(values).forEach((key) => {
+    if (values[key] >= 2) {
+      outcome = true;
+    }
+  });
+
+  return outcome;
+}
+
 const isFullHouse = (cards) => {
   const values = _getValuesCount(cards);
   let hasThreeOfAKind = false;
@@ -154,6 +180,12 @@ const isFullHouse = (cards) => {
 
   return hasThreeOfAKind && hasPair;
 };
+
+const getHighCard = (cards) => {
+  const sortedCards = _sortCardsByValues(cards);
+
+  return sortedCards[sortedCards.length - 1];
+}
 
 const _sortCardsByValues = (cards) => {
   const valueIndexes = [];
@@ -215,4 +247,7 @@ module.exports = {
   isFourOfAKind,
   isFullHouse,
   isThreeOfAKind,
+  isTwoPair,
+  isOnePair,
+  getHighCard
 };
