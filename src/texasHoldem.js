@@ -23,20 +23,22 @@ const getHighestRank = (cards) => {};
 
 const isRoyalFlush = (cards) => {
   let outcome = false;
-  const suits = _getSuitCount(cards);
+  let royalFlushCards = [];
+  const suitsCount = _getSuitCount(cards);
 
-  Object.keys(suits).forEach((key) => {
-    if (suits[key] === 5) {
+  Object.keys(suitsCount).forEach((suit) => {
+    if (suitsCount[suit] === 5) {
       let winningValues = 0;
       cards.forEach((card) => {
         if (
-          (card.suit === key && card.value === "10") ||
+          (card.suit === suit && card.value === "10") ||
           card.value === "J" ||
           card.value === "Q" ||
           card.value === "K" ||
           card.value === "A"
         ) {
           winningValues += 1;
+          royalFlushCards.push(card);
         }
       });
 
@@ -46,40 +48,44 @@ const isRoyalFlush = (cards) => {
     }
   });
 
-  return outcome;
+  return outcome ? { outcome, cards: royalFlushCards } : { outcome };
 };
 
 const isStraightFlush = (cards) => {
   let outcome = false;
+  let straightFlushCards = [];
   const suits = _getSuitCount(cards);
 
   Object.keys(suits).forEach((key) => {
     if (suits[key] === 5) {
-      const flushCards = [];
       cards.forEach((card) => {
         if (card.suit === key) {
-          flushCards.push(card);
+          straightFlushCards.push(card);
         }
       });
 
-      outcome = isStraight(flushCards);
+      outcome = isStraight(straightFlushCards);
     }
   });
 
-  return outcome;
+  return outcome ? { outcome, cards: straightFlushCards } : { outcome };
 };
 
 const isFlush = (cards) => {
   let outcome = false;
-  const suits = _getSuitCount(cards);
+  const suitCount = _getSuitCount(cards);
+  let winningSuit;
 
-  Object.keys(suits).forEach((key) => {
-    if (suits[key] === 5) {
+  Object.keys(suitCount).forEach((suit) => {
+    if (suitCount[suit] === 5) {
       outcome = true;
+      winningSuit = suit;
     }
   });
 
-  return outcome;
+  return outcome
+    ? { outcome, cards: _.filter(cards, (c) => c.suit === winningSuit) }
+    : { outcome };
 };
 
 const isStraight = (cards) => {
@@ -113,15 +119,19 @@ const isStraight = (cards) => {
 
 const isFourOfAKind = (cards) => {
   let outcome = false;
+  let winningValue;
   const values = _getValuesCount(cards);
 
   Object.keys(values).forEach((key) => {
     if (values[key] >= 4) {
       outcome = true;
+      winningValue = key;
     }
   });
 
-  return outcome;
+  return outcome
+    ? { outcome, cards: _.filter(cards, (c) => c.value === winningValue) }
+    : { outcome };
 };
 
 const isThreeOfAKind = (cards) => {
@@ -148,7 +158,7 @@ const isTwoPair = (cards) => {
   });
 
   return pairCount === 2;
-}
+};
 
 const isOnePair = (cards) => {
   let outcome = false;
@@ -161,31 +171,45 @@ const isOnePair = (cards) => {
   });
 
   return outcome;
-}
+};
 
 const isFullHouse = (cards) => {
   const values = _getValuesCount(cards);
   let hasThreeOfAKind = false;
+  let winningThreeValue;
   let hasPair = false;
+  let winningPairValue;
 
   Object.keys(values).forEach((key) => {
     if (values[key] >= 3) {
       hasThreeOfAKind = true;
+      winningThreeValue = key;
     }
 
     if (values[key] === 2) {
       hasPair = true;
+      winningPairValue = key;
     }
   });
 
-  return hasThreeOfAKind && hasPair;
+  const outcome = hasThreeOfAKind && hasPair;
+
+  return outcome
+    ? {
+        outcome,
+        cards: _.filter(
+          cards,
+          (c) => c.value === winningPairValue || c.value === winningThreeValue
+        ),
+      }
+    : { outcome };
 };
 
 const getHighCard = (cards) => {
   const sortedCards = _sortCardsByValues(cards);
 
   return sortedCards[sortedCards.length - 1];
-}
+};
 
 const _sortCardsByValues = (cards) => {
   const valueIndexes = [];
@@ -249,5 +273,5 @@ module.exports = {
   isThreeOfAKind,
   isTwoPair,
   isOnePair,
-  getHighCard
+  getHighCard,
 };

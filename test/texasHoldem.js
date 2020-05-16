@@ -15,11 +15,20 @@ describe("Texas Holdem", () => {
         { suit: "Heart", value: "A" },
       ];
 
+      const expected = [
+        { suit: "Heart", value: "J" },
+        { suit: "Heart", value: "K" },
+        { suit: "Heart", value: "Q" },
+        { suit: "Heart", value: "10" },
+        { suit: "Heart", value: "A" },
+      ];
+
       // Act
       const result = texasHoldem.isRoyalFlush(cards);
 
       // Assert
-      assert.equal(result, true);
+      assert.equal(result.outcome, true);
+      assert.deepEqual(result.cards, expected);
     });
 
     it("Should return false when a royal flush is not found", () => {
@@ -38,7 +47,7 @@ describe("Texas Holdem", () => {
       const result = texasHoldem.isRoyalFlush(cards);
 
       // Assert
-      assert.equal(result, false);
+      assert.equal(result.outcome, false);
     });
   });
 
@@ -55,11 +64,20 @@ describe("Texas Holdem", () => {
         { suit: "Heart", value: "A" },
       ];
 
+      const expected = [
+        { suit: "Heart", value: "Q" },
+        { suit: "Heart", value: "K" },
+        { suit: "Heart", value: "J" },
+        { suit: "Heart", value: "10" },
+        { suit: "Heart", value: "A" },
+      ];
+
       // Act
       const result = texasHoldem.isStraightFlush(cards);
 
       // Assert
-      assert.equal(result, true);
+      assert.equal(result.outcome, true);
+      assert.deepEqual(result.cards, expected);
     });
 
     it("Should return false given straight ranks but not flush suits", () => {
@@ -78,7 +96,7 @@ describe("Texas Holdem", () => {
       const result = texasHoldem.isStraightFlush(cards);
 
       // Assert
-      assert.equal(result, false);
+      assert.equal(result.outcome, false);
     });
 
     it("Should return false given flush suits but not straight ranks", () => {
@@ -97,7 +115,7 @@ describe("Texas Holdem", () => {
       const result = texasHoldem.isStraightFlush(cards);
 
       // Assert
-      assert.equal(result, false);
+      assert.equal(result.outcome, false);
     });
   });
 
@@ -114,11 +132,19 @@ describe("Texas Holdem", () => {
         { suit: "Heart", value: "Q" },
       ];
 
+      const expected = [
+        { suit: "Spade", value: "Q" },
+        { suit: "Heart", value: "Q" },
+        { suit: "Club", value: "Q" },
+        { suit: "Heart", value: "Q" },
+      ];
+
       // Act
       const result = texasHoldem.isFourOfAKind(cards);
 
       // Assert
-      assert.equal(result, true);
+      assert.equal(result.outcome, true);
+      assert.deepEqual(result.cards, expected);
     });
 
     it("Should return false when not four of a kind", () => {
@@ -137,7 +163,7 @@ describe("Texas Holdem", () => {
       const result = texasHoldem.isFourOfAKind(cards);
 
       // Assert
-      assert.equal(result, false);
+      assert.equal(result.outcome, false);
     });
   });
 
@@ -154,11 +180,21 @@ describe("Texas Holdem", () => {
         { suit: "Heart", value: "Q" },
       ];
 
+      const expected = [
+        { suit: "Spade", value: "Q" },
+        { suit: "Heart", value: "Q" },
+        { suit: "Spade", value: "K" },
+        { suit: "Heart", value: "K" },
+        { suit: "Club", value: "Q" },
+        { suit: "Heart", value: "Q" },
+      ];
+
       // Act
       const result = texasHoldem.isFullHouse(cards);
 
       // Assert
-      assert.equal(result, true);
+      assert.equal(result.outcome, true);
+      assert.deepEqual(result.cards, expected);
     });
 
     it("Should return false when not full house", () => {
@@ -177,7 +213,7 @@ describe("Texas Holdem", () => {
       const result = texasHoldem.isFullHouse(cards);
 
       // Assert
-      assert.equal(result, false);
+      assert.equal(result.outcome, false);
     });
   });
 
@@ -194,11 +230,20 @@ describe("Texas Holdem", () => {
         { suit: "Heart", value: "A" },
       ];
 
+      const expected = [
+        { suit: "Heart", value: "8" },
+        { suit: "Heart", value: "K" },
+        { suit: "Heart", value: "Q" },
+        { suit: "Heart", value: "10" },
+        { suit: "Heart", value: "A" },
+      ];
+
       // Act
       const result = texasHoldem.isFlush(cards);
 
       // Assert
-      assert.equal(result, true);
+      assert.equal(result.outcome, true);
+      assert.deepEqual(result.cards, expected);
     });
 
     it("Should return false when a flush is not found", () => {
@@ -217,7 +262,7 @@ describe("Texas Holdem", () => {
       const result = texasHoldem.isFlush(cards);
 
       // Assert
-      assert.equal(result, false);
+      assert.equal(result.outcome, false);
     });
   });
 
