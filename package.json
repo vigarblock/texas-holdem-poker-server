@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node --inspect index.js",
-    "test": "mocha"
+    "test": "mocha --recursive tests"
   },
   "author": "",
   "license": "ISC",

@@ -1,7 +1,7 @@
 var assert = require("assert");
-var texasHoldem = require("../src/texasHoldem");
+var handRanker = require("../../src/texas-holdem/handRanker");
 
-describe("Texas Holdem", () => {
+describe("Hank Ranker", () => {
   describe("Is Royal Flush", () => {
     it("Should return true when a royal flush is found", () => {
       // Arrange
@@ -24,7 +24,7 @@ describe("Texas Holdem", () => {
       ];
 
       // Act
-      const result = texasHoldem.isRoyalFlush(cards);
+      const result = handRanker.isRoyalFlush(cards);
 
       // Assert
       assert.equal(result.outcome, true);
@@ -44,7 +44,7 @@ describe("Texas Holdem", () => {
       ];
 
       // Act
-      const result = texasHoldem.isRoyalFlush(cards);
+      const result = handRanker.isRoyalFlush(cards);
 
       // Assert
       assert.equal(result.outcome, false);
@@ -73,7 +73,7 @@ describe("Texas Holdem", () => {
       ];
 
       // Act
-      const result = texasHoldem.isStraightFlush(cards);
+      const result = handRanker.isStraightFlush(cards);
 
       // Assert
       assert.equal(result.outcome, true);
@@ -93,7 +93,7 @@ describe("Texas Holdem", () => {
       ];
 
       // Act
-      const result = texasHoldem.isStraightFlush(cards);
+      const result = handRanker.isStraightFlush(cards);
 
       // Assert
       assert.equal(result.outcome, false);
@@ -112,7 +112,7 @@ describe("Texas Holdem", () => {
       ];
 
       // Act
-      const result = texasHoldem.isStraightFlush(cards);
+      const result = handRanker.isStraightFlush(cards);
 
       // Assert
       assert.equal(result.outcome, false);
@@ -140,7 +140,7 @@ describe("Texas Holdem", () => {
       ];
 
       // Act
-      const result = texasHoldem.isFourOfAKind(cards);
+      const result = handRanker.isFourOfAKind(cards);
 
       // Assert
       assert.equal(result.outcome, true);
@@ -160,7 +160,7 @@ describe("Texas Holdem", () => {
       ];
 
       // Act
-      const result = texasHoldem.isFourOfAKind(cards);
+      const result = handRanker.isFourOfAKind(cards);
 
       // Assert
       assert.equal(result.outcome, false);
@@ -190,7 +190,7 @@ describe("Texas Holdem", () => {
       ];
 
       // Act
-      const result = texasHoldem.isFullHouse(cards);
+      const result = handRanker.isFullHouse(cards);
 
       // Assert
       assert.equal(result.outcome, true);
@@ -210,7 +210,7 @@ describe("Texas Holdem", () => {
       ];
 
       // Act
-      const result = texasHoldem.isFullHouse(cards);
+      const result = handRanker.isFullHouse(cards);
 
       // Assert
       assert.equal(result.outcome, false);
@@ -239,7 +239,7 @@ describe("Texas Holdem", () => {
       ];
 
       // Act
-      const result = texasHoldem.isFlush(cards);
+      const result = handRanker.isFlush(cards);
 
       // Assert
       assert.equal(result.outcome, true);
@@ -259,7 +259,7 @@ describe("Texas Holdem", () => {
       ];
 
       // Act
-      const result = texasHoldem.isFlush(cards);
+      const result = handRanker.isFlush(cards);
 
       // Assert
       assert.equal(result.outcome, false);
@@ -279,11 +279,20 @@ describe("Texas Holdem", () => {
         { suit: "Heart", value: "A" },
       ];
 
+      const expected = [
+        { suit: "Club", value: "10" },
+        { suit: "Heart", value: "J" },
+        { suit: "Spade", value: "Q" },
+        { suit: "Spade", value: "K" },        
+        { suit: "Heart", value: "A" },
+      ];
+
       // Act
-      const result = texasHoldem.isStraight(cards);
+      const result = handRanker.isStraight(cards);
 
       // Assert
-      assert.equal(result, true);
+      assert.equal(result.outcome, true);
+      assert.deepEqual(result.cards, expected);
     });
 
     it("Should return false when a straight is not found", () => {
@@ -299,10 +308,10 @@ describe("Texas Holdem", () => {
       ];
 
       // Act
-      const result = texasHoldem.isStraight(cards);
+      const result = handRanker.isStraight(cards);
 
       // Assert
-      assert.equal(result, false);
+      assert.equal(result.outcome, false);
     });
   });
 
@@ -319,11 +328,18 @@ describe("Texas Holdem", () => {
         { suit: "Heart", value: "2" },
       ];
 
+      const expected = [
+        { suit: "Spade", value: "Q" },
+        { suit: "Heart", value: "Q" },
+        { suit: "Club", value: "Q" },
+      ];
+
       // Act
-      const result = texasHoldem.isThreeOfAKind(cards);
+      const result = handRanker.isThreeOfAKind(cards);
 
       // Assert
-      assert.equal(result, true);
+      assert.equal(result.outcome, true);
+      assert.deepEqual(result.cards, expected);
     });
 
     it("Should return false when not three of a kind", () => {
@@ -339,10 +355,10 @@ describe("Texas Holdem", () => {
       ];
 
       // Act
-      const result = texasHoldem.isThreeOfAKind(cards);
+      const result = handRanker.isThreeOfAKind(cards);
 
       // Assert
-      assert.equal(result, false);
+      assert.equal(result.outcome, false);
     });
   });
 
@@ -354,16 +370,24 @@ describe("Texas Holdem", () => {
         { suit: "Heart", value: "Q" },
         { suit: "Spade", value: "K" },
         { suit: "Heart", value: "J" },
-        { suit: "Club", value: "Q" },
+        { suit: "Club", value: "7" },
         { suit: "Diamond", value: "J" },
         { suit: "Heart", value: "2" },
       ];
 
+      const expected = [
+        { suit: "Spade", value: "Q" },
+        { suit: "Heart", value: "Q" },
+        { suit: "Heart", value: "J" },
+        { suit: "Diamond", value: "J" },
+      ];
+
       // Act
-      const result = texasHoldem.isTwoPair(cards);
+      const result = handRanker.isTwoPair(cards);
 
       // Assert
-      assert.equal(result, true);
+      assert.equal(result.outcome, true);
+      assert.deepEqual(result.cards, expected);
     });
 
     it("Should return false when two pair is not found", () => {
@@ -379,10 +403,10 @@ describe("Texas Holdem", () => {
       ];
 
       // Act
-      const result = texasHoldem.isTwoPair(cards);
+      const result = handRanker.isTwoPair(cards);
 
       // Assert
-      assert.equal(result, false);
+      assert.equal(result.outcome, false);
     });
   });
 
@@ -391,19 +415,25 @@ describe("Texas Holdem", () => {
       // Arrange
       const cards = [
         { suit: "Spade", value: "Q" },
-        { suit: "Heart", value: "Q" },
+        { suit: "Heart", value: "7" },
         { suit: "Spade", value: "K" },
         { suit: "Heart", value: "J" },
         { suit: "Club", value: "Q" },
-        { suit: "Diamond", value: "J" },
+        { suit: "Diamond", value: "4" },
         { suit: "Heart", value: "2" },
       ];
 
+      const expected = [
+        { suit: "Spade", value: "Q" },
+        { suit: "Club", value: "Q" },
+      ];
+
       // Act
-      const result = texasHoldem.isOnePair(cards);
+      const result = handRanker.isOnePair(cards);
 
       // Assert
-      assert.equal(result, true);
+      assert.equal(result.outcome, true);
+      assert.deepEqual(result.cards, expected);
     });
 
     it("Should return false when one pair is not found", () => {
@@ -419,10 +449,10 @@ describe("Texas Holdem", () => {
       ];
 
       // Act
-      const result = texasHoldem.isOnePair(cards);
+      const result = handRanker.isOnePair(cards);
 
       // Assert
-      assert.equal(result, false);
+      assert.equal(result.outcome, false);
     });
   });
 
@@ -439,12 +469,15 @@ describe("Texas Holdem", () => {
         { suit: "Heart", value: "2" },
       ];
 
+      const expected = [
+        { suit: "Spade", value: "K" },
+      ];
+
       // Act
-      const result = texasHoldem.getHighCard(cards);
+      const result = handRanker.getHighCard(cards);
 
       // Assert
-      assert.notEqual(result, undefined);
-      assert.equal(result.value, "K");
+      assert.deepEqual(result.cards, expected);
     });
   });
 });
