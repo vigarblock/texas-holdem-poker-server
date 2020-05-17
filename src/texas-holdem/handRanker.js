@@ -143,6 +143,7 @@ const isFlush = (cards) => {
 };
 
 const isStraight = (cards) => {
+  let outcome;
   const sortedCards = _sortCardsByValues(cards);
   const uniqueSortedCards = [];
 
@@ -169,13 +170,18 @@ const isStraight = (cards) => {
       }
       straightCards.push(uniqueSortedCards[i + 1]);
       inSequenceCount++;
+
+      if(inSequenceCount === 5) {
+        outcome = true;
+        break;
+      }
     } else {
       inSequenceCount = 1;
       straightCards = [];
     }
   }
 
-  const outcome = inSequenceCount === 5;
+  console.log('In sequence', straightCards);
 
   return outcome ? { rank: 6, outcome, cards: straightCards } : { outcome };
 };
