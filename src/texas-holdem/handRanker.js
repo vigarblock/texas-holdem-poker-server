@@ -143,7 +143,7 @@ const isFlush = (cards) => {
 };
 
 const isStraight = (cards) => {
-  let outcome;
+  let outcome = false;
   const sortedCards = _sortCardsByValues(cards);
   const uniqueSortedCards = [];
 
@@ -180,8 +180,6 @@ const isStraight = (cards) => {
       straightCards = [];
     }
   }
-
-  console.log('In sequence', straightCards);
 
   return outcome ? { rank: 6, outcome, cards: straightCards } : { outcome };
 };
@@ -326,5 +324,5 @@ module.exports = {
   isThreeOfAKind,
   isTwoPair,
   isOnePair,
-  getHighCard,
+  getHighCard
 };

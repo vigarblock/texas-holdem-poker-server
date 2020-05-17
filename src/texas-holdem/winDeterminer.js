@@ -3,7 +3,7 @@ const { values: rankedCardValues } = require("../constants/cards");
 const texasHoldemRankings = require("../constants/texasHoldemRankings");
 const handRanker = require("./handRanker");
 
-const getWinner = (players, communityCards) => {
+const getWinners = (players, communityCards) => {
   const handRankings = [];
 
   players.forEach((player) => {
@@ -29,28 +29,87 @@ const getWinner = (players, communityCards) => {
     }
   });
 
-  let winner;
+  let winners;
 
   if(topRankedHands.length > 1) {
-    winner = getWinnerFromTiedRanks(topRankedHands);
+    winners = getWinnerFromTiedRanks(topRankedHands, players);
   } else {
-    winner = topRankedHands[0];
+    winners = [topRankedHands[0]];
   }
 
-  const winningRankMessage = texasHoldemRankings[winner.rank];
-  return { winner, winningRankMessage };
+  const winningRankMessage = texasHoldemRankings[winners[0].rank];
+  return { winners, winningRankMessage };
 };
 
-const getWinnerFromTiedRanks = (rankedHands) => {
-  rankedHands.forEach(h => console.log(h));
-
-  // 1. Check if the ranked cards have a high card winner
-  // 2. If ranked cards are all the same, compare players original cards against each other
-  // 3. If both those can't determine a winner, split winnings
+const getWinnerFromTiedRanks = (rankedHands, players) => {
+  // Check if a winner can be determined by high card within tied ranks
+  let highCardOfPlayers = {};
 
   rankedHands.forEach(rankedHand => {
-    const bestCard = handRanker.getHighCard(rankedHand.rankCards);
+    const { cards: [highCard] } = handRanker.getHighCard(rankedHand.rankCards);
+    highCardOfPlayers[rankedHand.id] = _.findIndex(rankedCardValues, (o) => o === highCard.value);
+  });
+
+  let topHighCardRank = 0;
+  let highCardWinners = [];
+
+  Object.keys(highCardOfPlayers).forEach(key => {
+    if(highCardOfPlayers[key] > topHighCardRank) {
+      topHighCardRank = highCardOfPlayers[key];
+      highCardWinners = [];
+      highCardWinners.push(key);
+    } else if(highCardOfPlayers[key] === topHighCardRank) {
+      highCardWinners.push(key);
+    }
+  });
+
+  // Tie can be resolved by high card.
+  if(highCardWinners.length === 1) {
+    return [_.find(rankedHands, r => r.id === highCardWinners[0])];
+  }
+
+  // Check if a winner can be determined by original player hand
+  const involvedPlayers = [];
+
+  players.forEach(player => {
+    if(_.find(rankedHands), r => r.id === player.id){
+      involvedPlayers.push(player);
+    }
+  });
+
+  const cardValueIndexPlayers = {};
+
+  involvedPlayers.forEach(player => {
+    player.playerHand.forEach(card => {
+      if(!(card.value in cardValueIndexPlayers)) {
+        cardValueIndexPlayers[card.value] = [player.id];
+      } else {
+        cardValueIndexPlayers[card.value].push(player.id);
+      }
+    })
+  });
+
+  let topPersonalHandRank = 0;
+  let highestPersonalHandRankWinners = [];
+
+  Object.keys(cardValueIndexPlayers).forEach(key => {
+    if(cardValueIndexPlayers[key].length === 1) {
+      if(rankedCardValues.findIndex(r => r === key) > topPersonalHandRank) {
+        topPersonalHandRank = rankedCardValues.findIndex(r => r === key);
+        highestPersonalHandRankWinners = [];
+        highestPersonalHandRankWinners.push(cardValueIndexPlayers[key][0]);
+      } else if(rankedCardValues.findIndex(r => r === key) === topPersonalHandRank) {
+        highestPersonalHandRankWinners.push(cardValueIndexPlayers[key][0]);
+      }
+    }
   })
+
+  if(highestPersonalHandRankWinners.length === 1) {
+    return [_.find(rankedHands, r => r.id === highestPersonalHandRankWinners[0])];
+  }
+
+  // No way to determine winner, return all tied players as winners
+  return rankedHands
 }
 
 const getHighestRank = (cards) => {
@@ -109,4 +168,4 @@ const checkHandRank = (index, cards) => {
   return result;
 };
 
-module.exports = { getWinner };
+module.exports = { getWinner: getWinners };
