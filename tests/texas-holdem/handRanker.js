@@ -1,5 +1,5 @@
-var assert = require("assert");
-var handRanker = require("../../src/texas-holdem/handRanker");
+const assert = require("assert");
+const handRanker = require("../../src/texas-holdem/handRanker");
 
 describe("Hank Ranker", () => {
   describe("Is Royal Flush", () => {

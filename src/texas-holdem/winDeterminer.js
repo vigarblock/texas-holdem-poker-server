@@ -1,23 +1,57 @@
 const _ = require("lodash");
 const { values: rankedCardValues } = require("../constants/cards");
+const texasHoldemRankings = require("../constants/texasHoldemRankings");
 const handRanker = require("./handRanker");
 
 const getWinner = (players, communityCards) => {
   const handRankings = [];
 
-  players.array.forEach((player) => {
+  players.forEach((player) => {
     const combinedCards = [...player.playerHand, ...communityCards];
     const handRank = getHighestRank(combinedCards);
-    handRankings.push({ id: playerHand.id, rank: handRank.rank, rankCards: handRank.cards });
+    handRankings.push({
+      id: player.id,
+      rank: handRank.rank,
+      rankCards: handRank.cards,
+    });
   });
 
-  // TODO
-  // 4. Check which players have the same rank.
-  // 5. For players with the same rank, apply comparator rules to determine winner
-  // 6. Return winning player
+  let topRankedHands = [];
+  let topRank = 10;
 
-  return { winner: "winning-player", winningRankMessage: "Four of a Kind" };
+  handRankings.forEach((hand) => {
+    if (hand.rank < topRank) {
+      topRank = hand.rank;
+      topRankedHands = [];
+      topRankedHands.push(hand);
+    } else if (hand.rank === topRank) {
+      topRankedHands.push(hand);
+    }
+  });
+
+  let winner;
+
+  if(topRankedHands.length > 1) {
+    winner = getWinnerFromTiedRanks(topRankedHands);
+  } else {
+    winner = topRankedHands[0];
+  }
+
+  const winningRankMessage = texasHoldemRankings[winner.rank];
+  return { winner, winningRankMessage };
 };
+
+const getWinnerFromTiedRanks = (rankedHands) => {
+  rankedHands.forEach(h => console.log(h));
+
+  // 1. Check if the ranked cards have a high card winner
+  // 2. If ranked cards are all the same, compare players original cards against each other
+  // 3. If both those can't determine a winner, split winnings
+
+  rankedHands.forEach(rankedHand => {
+    const bestCard = handRanker.getHighCard(rankedHand.rankCards);
+  })
+}
 
 const getHighestRank = (cards) => {
   let index = 1;
@@ -74,3 +108,5 @@ const checkHandRank = (index, cards) => {
 
   return result;
 };
+
+module.exports = { getWinner };
