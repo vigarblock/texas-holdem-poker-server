@@ -8,21 +8,35 @@ const isRoyalFlush = (cards) => {
 
   Object.keys(suitsCount).forEach((suit) => {
     if (suitsCount[suit] === 5) {
-      let winningValues = 0;
+      let hasAce = false;
+      let hasKing = false;
+      let hasQueen = false;
+      let hasJack = false;
+      let hasTen = false;
       cards.forEach((card) => {
-        if (
-          (card.suit === suit && card.value === "10") ||
-          card.value === "J" ||
-          card.value === "Q" ||
-          card.value === "K" ||
-          card.value === "A"
-        ) {
-          winningValues += 1;
+        if (card.suit === suit && card.value === "A") {
+          hasAce = true;
+          royalFlushCards.push(card);
+        }
+        if (card.suit === suit && card.value === "K") {
+          hasKing = true;
+          royalFlushCards.push(card);
+        }
+        if (card.suit === suit && card.value === "Q") {
+          hasQueen = true;
+          royalFlushCards.push(card);
+        }
+        if (card.suit === suit && card.value === "J") {
+          hasJack = true;
+          royalFlushCards.push(card);
+        }
+        if (card.suit === suit && card.value === "10") {
+          hasTen = true;
           royalFlushCards.push(card);
         }
       });
 
-      if (winningValues === 5) {
+      if (hasAce && hasKing && hasQueen && hasJack && hasTen) {
         outcome = true;
       }
     }
