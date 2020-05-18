@@ -30,12 +30,12 @@ GameManager.on("communityUpdates", (data) => {
 });
 
 GameManager.on("playerUpdates", (updates) => {
-  updates.forEach(p => {
+  updates.forEach((p) => {
     sendToIndividualPlayer(p.socketId, "playerUpdates", {
       playerData: p.playerData,
       opponentsData: p.opponentsData,
     });
-  })
+  });
 });
 
 io.on("connection", (socket) => {
@@ -48,7 +48,7 @@ io.on("connection", (socket) => {
 
   socket.on("startGame", ({ gameId }) => {
     const game = GameManager.getGameInstance(gameId);
-    if(!game.hasGameStarted()) {
+    if (!game.hasGameStarted()) {
       game.initializeGame();
       game.startHand();
       game.emitPlayerUpdates();
@@ -59,8 +59,11 @@ io.on("connection", (socket) => {
   socket.on("activePlayerAction", ({ gameId, playerId, action, data }) => {
     const game = GameManager.getGameInstance(gameId);
     game.playerAction(playerId, action, data);
-    game.emitPlayerUpdates();
-    game.emitCommunityUpdates();
+
+    if (!game.hasHandEnded()) {
+      game.emitPlayerUpdates();
+      game.emitCommunityUpdates();
+    }
   });
 
   socket.on("playerExit", ({ gameId, playerId }) => {

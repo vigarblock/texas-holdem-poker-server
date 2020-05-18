@@ -42,7 +42,7 @@ class Game extends EventEmitter {
     this.hand = new Hand();
     this.hand.initializeHand();
 
-    this.playerService.getAllPlayers().forEach(player => {
+    this.playerService.getAllPlayers().forEach((player) => {
       this.playerService.updatePlayer(player.id, {
         action: { name: "Ready", value: "" },
         callAmount: 0,
@@ -226,6 +226,10 @@ class Game extends EventEmitter {
 
   hasGameStarted() {
     return this.state !== gameState.WAITING_FOR_GAME_START;
+  }
+
+  hasHandEnded() {
+    return this.state === gameState.HAND_ENDED;
   }
 
   updatePlayer(playerId, playerData) {
@@ -413,8 +417,6 @@ class Game extends EventEmitter {
           playerId === this.activePlayerId
         ) {
           this.playerAction(this.activePlayerId, "fold", null);
-          this.emitPlayerUpdates();
-          this.emitCommunityUpdates();
         }
       },
       playerWaitTimeoutMs,
