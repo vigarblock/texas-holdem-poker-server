@@ -390,6 +390,33 @@ describe("Hank Ranker", () => {
       assert.deepEqual(result.cards, expected);
     });
 
+    it("Should return top 2 pairs when more then 2 pairs found", () => {
+      // Arrange
+      const cards = [
+        { suit: "Spade", value: "2" },
+        { suit: "Heart", value: "2" },
+        { suit: "Spade", value: "Q" },
+        { suit: "Heart", value: "Q" },
+        { suit: "Heart", value: "10" },
+        { suit: "Diamond", value: "A" },
+        { suit: "Club", value: "10" },
+      ];
+
+      const expected = [
+        { suit: "Spade", value: "Q" },
+        { suit: "Heart", value: "Q" },
+        { suit: "Heart", value: "10" },
+        { suit: "Club", value: "10" },
+      ];
+
+      // Act
+      const result = handRanker.isTwoPair(cards);
+
+      // Assert
+      assert.equal(result.outcome, true);
+      assert.deepEqual(result.cards, expected);
+    });
+
     it("Should return false when two pair is not found", () => {
       // Arrange
       const cards = [

@@ -88,8 +88,8 @@ class Hand {
     const cards = this.cardDeck.takeCards(2);
 
     return [
-      { suit: cards[0].suit, cardValue: cards[0].value },
-      { suit: cards[1].suit, cardValue: cards[1].value },
+      { suit: cards[0].suit, value: cards[0].value },
+      { suit: cards[1].suit, value: cards[1].value },
     ];
   }
 

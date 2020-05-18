@@ -168,4 +168,4 @@ const checkHandRank = (index, cards) => {
   return result;
 };
 
-module.exports = { getWinner: getWinners };
+module.exports = { getWinners };

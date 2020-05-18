@@ -171,7 +171,7 @@ const isStraight = (cards) => {
       straightCards.push(uniqueSortedCards[i + 1]);
       inSequenceCount++;
 
-      if(inSequenceCount === 5) {
+      if (inSequenceCount === 5) {
         outcome = true;
         break;
       }
@@ -190,7 +190,7 @@ const isThreeOfAKind = (cards) => {
   let winningValue;
 
   Object.keys(values).forEach((key) => {
-    if (values[key] >= 3) {
+    if (values[key] === 3) {
       outcome = true;
       winningValue = key;
     }
@@ -211,13 +211,27 @@ const isTwoPair = (cards) => {
   let winningValues = [];
 
   Object.keys(values).forEach((key) => {
-    if (values[key] >= 2) {
+    if (values[key] === 2) {
       winningValues.push(key);
       pairCount++;
     }
   });
 
-  const outcome = pairCount === 2;
+  const outcome = pairCount >= 2;
+
+  // If more than 2 pairs, sort by the highest value rank and return top 2
+  if (winningValues.length > 2) {
+    let winningValueIndexes = [];
+
+    winningValues.forEach((v) =>
+      winningValueIndexes.push(rankedCardValues.indexOf(v))
+    );
+    winningValues = [];
+    const sortedWinningValues = winningValueIndexes
+      .sort((a, b) => a - b)
+      .reverse();
+    sortedWinningValues.forEach((s) => winningValues.push(rankedCardValues[s]));
+  }
 
   return outcome
     ? {
@@ -237,7 +251,7 @@ const isOnePair = (cards) => {
   let winningValue;
 
   Object.keys(values).forEach((key) => {
-    if (values[key] >= 2) {
+    if (values[key] === 2) {
       outcome = true;
       winningValue = key;
     }
@@ -324,5 +338,5 @@ module.exports = {
   isThreeOfAKind,
   isTwoPair,
   isOnePair,
-  getHighCard
+  getHighCard,
 };

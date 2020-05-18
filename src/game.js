@@ -2,6 +2,7 @@ const EventEmitter = require("events");
 const _ = require("lodash");
 const Hand = require("./hand");
 const PlayerService = require("./playerService");
+const winDeterminer = require("../src/texas-holdem/winDeterminer");
 const bettingState = require("../src/constants/bettingState");
 const gameState = require("../src/constants/gameState");
 const playerWaitTimeoutMs = 30000;
@@ -114,7 +115,7 @@ class Game extends EventEmitter {
         if (player.isActive) {
           const onBetAgreement = () => {
             if (this.hand.automaticHandWinner) {
-              this._completeHand(this.hand.automaticHandWinner);
+              this._completeHand(this.hand.automaticHandWinner, "Automatic Winner");
             } else {
               this.hand.setHandState(bettingState.FLOPBET);
               this._makePlayerActivePostBetAgreement();
@@ -132,7 +133,7 @@ class Game extends EventEmitter {
         if (player.isActive) {
           const onBetAgreement = () => {
             if (this.hand.automaticHandWinner) {
-              this._completeHand(this.hand.automaticHandWinner);
+              this._completeHand(this.hand.automaticHandWinner, "Automatic Winner");
             } else {
               this.hand.setHandState(bettingState.TURNBET);
               this._makePlayerActivePostBetAgreement();
@@ -150,7 +151,7 @@ class Game extends EventEmitter {
         if (player.isActive) {
           const onBetAgreement = () => {
             if (this.hand.automaticHandWinner) {
-              this._completeHand(this.hand.automaticHandWinner);
+              this._completeHand(this.hand.automaticHandWinner, "Automatic Winner");
             } else {
               this.hand.setHandState(bettingState.RIVERBET);
               this._makePlayerActivePostBetAgreement();
@@ -168,11 +169,13 @@ class Game extends EventEmitter {
         if (player.isActive) {
           const onBetAgreement = () => {
             if (this.hand.automaticHandWinner) {
-              this._completeHand(this.hand.automaticHandWinner);
+              this._completeHand(this.hand.automaticHandWinner, "Automatic Winner");
             } else {
-              // TODO: Determine hand winner
-              const handWinner = this.hand.betAgreedPlayers[1];
-              this._completeHand(handWinner);
+              const winResult = winDeterminer.getWinners(
+                this.hand.betAgreedPlayers,
+                this.hand.getCommunityCards()
+              );
+              this._completeHand(winResult.winners[0], winResult.winningRankMessage);
             }
 
             if (this._shouldGameEnd()) {
@@ -450,8 +453,9 @@ class Game extends EventEmitter {
     return winner[0];
   }
 
-  _completeHand(winningPlayer) {
-    const hand = this.hand.completeHand(winningPlayer.id);
+  _completeHand(handWinner, winExplanation) {
+    const hand = this.hand.completeHand(handWinner.id);
+    const winningPlayer = this.getPlayer(handWinner.id);
 
     // Update winner
     this.updatePlayer(winningPlayer.id, {
@@ -470,6 +474,7 @@ class Game extends EventEmitter {
       communityCards: hand.communityCards,
       pot: hand.pot,
       winner: winningPlayer.name,
+      winExplanation,
       winnerAmount: hand.winnerAmount,
       playerData: hand.playerData,
     };

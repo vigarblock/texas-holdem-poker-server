@@ -31,7 +31,7 @@ describe("Win Determiner", () => {
     ];
 
     // Act
-    const result = winDeterminer.getWinner(players, communityCards);
+    const result = winDeterminer.getWinners(players, communityCards);
 
     // Assert
     assert.equal(result.winners.length, 1);
@@ -67,7 +67,7 @@ describe("Win Determiner", () => {
     ];
 
     // Act
-    const result = winDeterminer.getWinner(players, communityCards);
+    const result = winDeterminer.getWinners(players, communityCards);
 
     // Assert
     assert.equal(result.winners.length, 1);
@@ -103,7 +103,7 @@ describe("Win Determiner", () => {
     ];
 
     // Act
-    const result = winDeterminer.getWinner(players, communityCards);
+    const result = winDeterminer.getWinners(players, communityCards);
 
     // Assert
     assert.equal(result.winners.length, 1);
@@ -139,12 +139,48 @@ describe("Win Determiner", () => {
     ];
 
     // Act
-    const result = winDeterminer.getWinner(players, communityCards);
+    const result = winDeterminer.getWinners(players, communityCards);
 
     // Assert
     assert.equal(result.winners.length, 2);
     assert.equal(result.winners[0].id, "foo");
     assert.equal(result.winners[1].id, "bar");
     assert.equal(result.winningRankMessage, texasHoldemRankings[9]);
+  });
+
+  it("Should return winner with best pair in tied two pair rankings", () => {
+    // Arrange
+    const communityCards = [
+      { suit: "Diamond", value: "2" },
+      { suit: "Club", value: "2" },
+      { suit: "Spade", value: "Q" },
+      { suit: "Spade", value: "Q" },
+      { suit: "Diamond", value: "10" },
+    ];
+
+    const players = [
+      {
+        id: "foo",
+        playerHand: [
+          { suit: "Heart", value: "8" },
+          { suit: "Diamond", value: "6" },
+        ],
+      },
+      {
+        id: "bar",
+        playerHand: [
+          { suit: "Spade", value: "10" },
+          { suit: "Club", value: "A" },
+        ],
+      },
+    ];
+
+    // Act
+    const result = winDeterminer.getWinners(players, communityCards);
+
+    // Assert
+    assert.equal(result.winners.length, 1);
+    assert.equal(result.winners[0].id, "bar");
+    assert.equal(result.winningRankMessage, texasHoldemRankings[8]);
   });
 });
