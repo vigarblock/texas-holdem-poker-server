@@ -6,6 +6,7 @@ const winDeterminer = require("../src/texas-holdem/winDeterminer");
 const bettingState = require("../src/constants/bettingState");
 const gameState = require("../src/constants/gameState");
 const playerWaitTimeoutMs = 30000;
+const startNewHandTimeoutMs = 10000;
 
 class Game extends EventEmitter {
   constructor(id, startingChipsPerPlayer) {
@@ -40,6 +41,14 @@ class Game extends EventEmitter {
     this.state = gameState.HAND_IN_PROGRESS;
     this.hand = new Hand();
     this.hand.initializeHand();
+
+    this.playerService.getAllPlayers().forEach(player => {
+      this.playerService.updatePlayer(player.id, {
+        action: { name: "Ready", value: "" },
+        callAmount: 0,
+      });
+    });
+
     this._initializePlayerHandsAndSetDealer();
   }
 
@@ -115,7 +124,10 @@ class Game extends EventEmitter {
         if (player.isActive) {
           const onBetAgreement = () => {
             if (this.hand.automaticHandWinner) {
-              this._completeHand(this.hand.automaticHandWinner, "Automatic Winner");
+              this._completeHand(
+                this.hand.automaticHandWinner,
+                "Automatic Winner"
+              );
             } else {
               this.hand.setHandState(bettingState.FLOPBET);
               this._makePlayerActivePostBetAgreement();
@@ -133,7 +145,10 @@ class Game extends EventEmitter {
         if (player.isActive) {
           const onBetAgreement = () => {
             if (this.hand.automaticHandWinner) {
-              this._completeHand(this.hand.automaticHandWinner, "Automatic Winner");
+              this._completeHand(
+                this.hand.automaticHandWinner,
+                "Automatic Winner"
+              );
             } else {
               this.hand.setHandState(bettingState.TURNBET);
               this._makePlayerActivePostBetAgreement();
@@ -151,7 +166,10 @@ class Game extends EventEmitter {
         if (player.isActive) {
           const onBetAgreement = () => {
             if (this.hand.automaticHandWinner) {
-              this._completeHand(this.hand.automaticHandWinner, "Automatic Winner");
+              this._completeHand(
+                this.hand.automaticHandWinner,
+                "Automatic Winner"
+              );
             } else {
               this.hand.setHandState(bettingState.RIVERBET);
               this._makePlayerActivePostBetAgreement();
@@ -169,13 +187,19 @@ class Game extends EventEmitter {
         if (player.isActive) {
           const onBetAgreement = () => {
             if (this.hand.automaticHandWinner) {
-              this._completeHand(this.hand.automaticHandWinner, "Automatic Winner");
+              this._completeHand(
+                this.hand.automaticHandWinner,
+                "Automatic Winner"
+              );
             } else {
               const winResult = winDeterminer.getWinners(
                 this.hand.betAgreedPlayers,
                 this.hand.getCommunityCards()
               );
-              this._completeHand(winResult.winners[0], winResult.winningRankMessage);
+              this._completeHand(
+                winResult.winners[0],
+                winResult.winningRankMessage
+              );
             }
 
             if (this._shouldGameEnd()) {
@@ -198,26 +222,6 @@ class Game extends EventEmitter {
 
   addPlayerToGame({ id, name, socketId }) {
     this.playerService.addPlayer({ id, name, socketId });
-  }
-
-  playerContinue(playerId) {
-    this.playerService.updatePlayer(playerId, {
-      action: { name: "Joined", value: "" },
-      callAmount: 0,
-    });
-
-    const playersWaitingToJoin = _.find(
-      this.playerService.getAllPlayers(),
-      (player) => player.action.name !== "Joined"
-    );
-
-    if (!playersWaitingToJoin) {
-      this.state = gameState.READY_TO_START_HAND;
-    }
-  }
-
-  isReadyToStartNewHand() {
-    return this.state === gameState.READY_TO_START_HAND;
   }
 
   hasGameStarted() {
@@ -481,6 +485,12 @@ class Game extends EventEmitter {
 
     this.emit("handWinner", handWinnerData);
     this.state = gameState.HAND_ENDED;
+
+    setTimeout(() => {
+      this.startHand();
+      this.emitPlayerUpdates();
+      this.emitCommunityUpdates();
+    }, startNewHandTimeoutMs);
   }
 
   emitPlayerUpdates() {

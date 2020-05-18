@@ -63,17 +63,6 @@ io.on("connection", (socket) => {
     game.emitCommunityUpdates();
   });
 
-  socket.on("playerContinue", ({ gameId, playerId }) => {
-    const game = GameManager.getGameInstance(gameId);
-    game.playerContinue(playerId);
-
-    if (game.isReadyToStartNewHand()) {
-      game.startHand();
-      game.emitPlayerUpdates();
-      game.emitCommunityUpdates();
-    }
-  });
-
   socket.on("playerExit", ({ gameId, playerId }) => {
     const game = GameManager.getGameInstance(gameId);
     game.removePlayer(playerId);
