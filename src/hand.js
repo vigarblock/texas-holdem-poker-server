@@ -10,6 +10,7 @@ class Hand {
     this.playerContributions = [];
     this.foldedPlayers = [];
     this.betAgreedPlayers = [];
+    this.exitedPlayers = [];
     this.pot = 0;
     this.automaticHandWinner = null;
   }
@@ -24,6 +25,10 @@ class Hand {
 
   addToFolded(player) {
     this.foldedPlayers.push(player);
+  }
+
+  addToExited(player) {
+    this.exitedPlayers.push(player);
   }
 
   addToPot(amount) {
@@ -130,9 +135,12 @@ class Hand {
   }
 
   havePlayersAgreedOnBet(totalPlayers) {
-    const handInteractedPlayers =
-      this.foldedPlayers.length + this.betAgreedPlayers.length;
-    return totalPlayers === handInteractedPlayers;
+    const betAgreementPlayers =
+      this.foldedPlayers.length +
+      this.betAgreedPlayers.length -
+      this.exitedPlayers.length;
+
+    return totalPlayers === betAgreementPlayers;
   }
 
   doesPlayerNeedToTakeAction(playerId) {
@@ -143,7 +151,7 @@ class Hand {
   }
 
   hasEveryoneElseFolded(totalPlayers) {
-    const foldedPlayers = this.foldedPlayers.length;
+    const foldedPlayers = this.foldedPlayers.length - this.exitedPlayers.length;
     return totalPlayers - foldedPlayers === 1;
   }
 

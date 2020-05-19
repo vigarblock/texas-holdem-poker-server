@@ -29,10 +29,14 @@ class PlayerService {
         coins: 0,
         action: { name: "Joined", value: "" },
         playerHand: [],
+        hasLeft: false,
       };
   
       this.players.push(player);
     } else {
+      if(playerExists.hasLeft) {
+        throw Error("You cannot re-join a game you left");
+      }
       // Player disconnections will result in player being added back with 
       // new socket connection. Therefore, just update the socket ID
       this.updatePlayer(data.id, { socketId: data.socketId })
@@ -52,6 +56,7 @@ class PlayerService {
       minRaiseAmount,
       action,
       playerHand,
+      hasLeft,
     }
   ) {
     this.players.forEach((player) => {
@@ -94,6 +99,10 @@ class PlayerService {
 
         if (playerHand !== undefined) {
           player.playerHand = playerHand;
+        }
+
+        if (hasLeft !== undefined) {
+          player.hasLeft = hasLeft;
         }
 
         return player;

@@ -67,8 +67,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("playerExit", ({ gameId, playerId }) => {
-    const game = GameManager.getGameInstance(gameId);
-    game.removePlayer(playerId);
+    GameManager.playerExit(gameId, playerId);
     socket.leave(gameId);
   });
 

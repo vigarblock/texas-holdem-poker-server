@@ -43,10 +43,12 @@ class Game extends EventEmitter {
     this.hand.initializeHand();
 
     this.playerService.getAllPlayers().forEach((player) => {
-      this.playerService.updatePlayer(player.id, {
-        action: { name: "Ready", value: "" },
-        callAmount: 0,
-      });
+      if (!player.hasLeft) {
+        this.playerService.updatePlayer(player.id, {
+          action: { name: "Ready", value: "" },
+          callAmount: 0,
+        });
+      }
     });
 
     this._initializePlayerHandsAndSetDealer();
@@ -121,98 +123,77 @@ class Game extends EventEmitter {
 
     switch (this.hand.state) {
       case bettingState.PREFLOPBET:
-        if (player.isActive) {
-          const onBetAgreement = () => {
-            if (this.hand.automaticHandWinner) {
-              this._completeHand(
-                this.hand.automaticHandWinner,
-                "Automatic Winner"
-              );
-            } else {
-              this.hand.setHandState(bettingState.FLOPBET);
-              this._makePlayerActivePostBetAgreement();
-            }
-          };
+        const onPreFlopAgreement = () => {
+          if (this.hand.automaticHandWinner) {
+            this._completeHand(
+              this.hand.automaticHandWinner,
+              "Automatic Winner"
+            );
+          } else {
+            this.hand.setHandState(bettingState.FLOPBET);
+            this._makePlayerActivePostBetAgreement();
+          }
+        };
 
-          this._handlePlayerAction(player, action, actionData);
-          this._determineBetAgreement(player, onBetAgreement);
-        } else {
-          throw Error(`Player '${player.name}' performed an illegal action`);
-        }
+        this._handlePlayerAction(player, action, actionData);
+        this._determineBetAgreement(player, onPreFlopAgreement);
         break;
 
       case bettingState.FLOPBET:
-        if (player.isActive) {
-          const onBetAgreement = () => {
-            if (this.hand.automaticHandWinner) {
-              this._completeHand(
-                this.hand.automaticHandWinner,
-                "Automatic Winner"
-              );
-            } else {
-              this.hand.setHandState(bettingState.TURNBET);
-              this._makePlayerActivePostBetAgreement();
-            }
-          };
+        const onFlopAgreement = () => {
+          if (this.hand.automaticHandWinner) {
+            this._completeHand(
+              this.hand.automaticHandWinner,
+              "Automatic Winner"
+            );
+          } else {
+            this.hand.setHandState(bettingState.TURNBET);
+            this._makePlayerActivePostBetAgreement();
+          }
+        };
 
-          this._handlePlayerAction(player, action, actionData);
-          this._determineBetAgreement(player, onBetAgreement);
-        } else {
-          throw Error(`Player '${player.name}' performed an illegal action`);
-        }
+        this._handlePlayerAction(player, action, actionData);
+        this._determineBetAgreement(player, onFlopAgreement);
         break;
 
       case bettingState.TURNBET:
-        if (player.isActive) {
-          const onBetAgreement = () => {
-            if (this.hand.automaticHandWinner) {
-              this._completeHand(
-                this.hand.automaticHandWinner,
-                "Automatic Winner"
-              );
-            } else {
-              this.hand.setHandState(bettingState.RIVERBET);
-              this._makePlayerActivePostBetAgreement();
-            }
-          };
+        const onTurnAgreement = () => {
+          if (this.hand.automaticHandWinner) {
+            this._completeHand(
+              this.hand.automaticHandWinner,
+              "Automatic Winner"
+            );
+          } else {
+            this.hand.setHandState(bettingState.RIVERBET);
+            this._makePlayerActivePostBetAgreement();
+          }
+        };
 
-          this._handlePlayerAction(player, action, actionData);
-          this._determineBetAgreement(player, onBetAgreement);
-        } else {
-          throw Error(`Player '${player.name}' performed an illegal action`);
-        }
+        this._handlePlayerAction(player, action, actionData);
+        this._determineBetAgreement(player, onTurnAgreement);
         break;
 
       case bettingState.RIVERBET:
-        if (player.isActive) {
-          const onBetAgreement = () => {
-            if (this.hand.automaticHandWinner) {
-              this._completeHand(
-                this.hand.automaticHandWinner,
-                "Automatic Winner"
-              );
-            } else {
-              const winResult = winDeterminer.getWinners(
-                this.hand.betAgreedPlayers,
-                this.hand.getCommunityCards()
-              );
-              this._completeHand(
-                winResult.winners[0],
-                winResult.winningRankMessage
-              );
-            }
+        const onRiverAgreement = () => {
+          if (this.hand.automaticHandWinner) {
+            this._completeHand(
+              this.hand.automaticHandWinner,
+              "Automatic Winner"
+            );
+          } else {
+            const winResult = winDeterminer.getWinners(
+              this.hand.betAgreedPlayers,
+              this.hand.getCommunityCards()
+            );
+            this._completeHand(
+              winResult.winners[0],
+              winResult.winningRankMessage
+            );
+          }
+        };
 
-            if (this._shouldGameEnd()) {
-              const gameWinner = this._getGameWinner();
-              this.emit("gameWinner", gameWinner);
-            }
-          };
-
-          this._handlePlayerAction(player, action, actionData);
-          this._determineBetAgreement(player, onBetAgreement);
-        } else {
-          throw Error(`Player '${player.name}' performed an illegal action`);
-        }
+        this._handlePlayerAction(player, action, actionData);
+        this._determineBetAgreement(player, onRiverAgreement);
         break;
 
       default:
@@ -237,7 +218,15 @@ class Game extends EventEmitter {
   }
 
   removePlayer(playerId) {
-    this.playerService.removePlayer(playerId);
+    if (this.dealer && this.dealer.id === playerId) {
+      this.dealer = this._getNextPlayer(this.dealer.position);
+    }
+    this.hand.addToExited(playerId);
+    this.playerAction(playerId, "fold", null);
+    this.playerService.updatePlayer(playerId, {
+      action: { name: "Left" },
+      hasLeft: true,
+    });
   }
 
   getPlayer(playerId) {
@@ -260,18 +249,41 @@ class Game extends EventEmitter {
     return this.hand.getPotTotal();
   }
 
-  _getNextPlayer(currentPlayerPosition) {
-    // Get next player position based on index
-    let nextPlayerPosition = currentPlayerPosition + 1;
-    if (nextPlayerPosition > this.playerService.getAllPlayers().length) {
-      nextPlayerPosition = 1;
-    }
+  getActivePlayerCount() {
+    const allPlayers = this.getAllPlayers();
+    const activePlayers = allPlayers.filter((p) => p.hasLeft === false);
+    return activePlayers.length;
+  }
 
-    const nextPlayer = this.playerService.getPlayerByPosition(
-      nextPlayerPosition
+  _getNextPlayer(currentPlayerPosition) {
+    const allPlayers = this.getAllPlayers();
+    const remainingEligiblePlayers = allPlayers.filter(
+      (p) => p.hasLeft === false
     );
 
-    return nextPlayer;
+    const sortedPlayerPositions = _.sortBy(remainingEligiblePlayers, [
+      "position",
+    ]);
+
+    const currentPlayerIndex = sortedPlayerPositions.findIndex(
+      (s) => s.position === currentPlayerPosition
+    );
+
+    let nextPlayerIndex;
+
+    if (currentPlayerIndex === sortedPlayerPositions.length - 1) {
+      nextPlayerIndex = 0;
+    } else {
+      nextPlayerIndex = currentPlayerIndex + 1;
+    }
+
+    const nextPlayerId = sortedPlayerPositions[nextPlayerIndex].id;
+
+    console.log('Getting next player', nextPlayerId);
+
+    return this.playerService
+      .getAllPlayers()
+      .find((p) => p.id === nextPlayerId);
   }
 
   _determineBetAgreement(player, onBetAgreement) {
@@ -288,11 +300,7 @@ class Game extends EventEmitter {
       const nextPlayer = this._getNextPlayer(nextPlayerCalculationPosition);
 
       if (this.hand.doesPlayerNeedToTakeAction(nextPlayer.id)) {
-        if (
-          this.hand.hasEveryoneElseFolded(
-            this.playerService.getAllPlayers().length
-          )
-        ) {
+        if (this.hand.hasEveryoneElseFolded(this.getActivePlayerCount())) {
           // Make this player the automatic winner
           this.hand.setAutomaticHandWinner(nextPlayer);
           this.hand.addToBetAgreement(nextPlayer);
@@ -315,13 +323,8 @@ class Game extends EventEmitter {
           repeat = false;
         }
       } else {
-        if (
-          this.hand.havePlayersAgreedOnBet(
-            this.playerService.getAllPlayers().length
-          )
-        ) {
-          // If all but 1 player has folded, then automatically award hand win
-          if (this.hand.betAgreedPlayers.length === 1) {
+        if (this.hand.havePlayersAgreedOnBet(this.getActivePlayerCount())) {
+          if (this.hand.hasEveryoneElseFolded(this.getActivePlayerCount())) {
             this.hand.setAutomaticHandWinner(this.hand.betAgreedPlayers[0]);
           }
 
@@ -433,16 +436,18 @@ class Game extends EventEmitter {
   }
 
   _shouldGameEnd() {
-    const allPlayers = this.playerService.getAllPlayers();
+    const allActivePlayers = this.playerService
+      .getAllPlayers()
+      .filter((p) => p.hasLeft === false);
 
     const lostPlayers = [];
-    _.find(allPlayers, (player) => {
+    _.find(allActivePlayers, (player) => {
       if (player.coins === 0) {
         lostPlayers.push(player);
       }
     });
 
-    return lostPlayers.length === allPlayers.length - 1;
+    return lostPlayers.length === allActivePlayers.length - 1;
   }
 
   _getGameWinner() {
@@ -479,6 +484,7 @@ class Game extends EventEmitter {
     const handWinnerData = {
       communityCards: hand.communityCards,
       pot: hand.pot,
+      winnerId: winningPlayer.id,
       winner: winningPlayer.name,
       winExplanation,
       winnerAmount: hand.winnerAmount,
@@ -488,11 +494,16 @@ class Game extends EventEmitter {
     this.emit("handWinner", handWinnerData);
     this.state = gameState.HAND_ENDED;
 
-    setTimeout(() => {
-      this.startHand();
-      this.emitPlayerUpdates();
-      this.emitCommunityUpdates();
-    }, startNewHandTimeoutMs);
+    if (this._shouldGameEnd()) {
+      const gameWinner = this._getGameWinner();
+      this.emit("gameWinner", gameWinner);
+    } else {
+      setTimeout(() => {
+        this.startHand();
+        this.emitPlayerUpdates();
+        this.emitCommunityUpdates();
+      }, startNewHandTimeoutMs);
+    }
   }
 
   emitPlayerUpdates() {
