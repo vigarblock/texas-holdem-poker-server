@@ -38,32 +38,23 @@ GameManager.on("playerUpdates", (updates) => {
   });
 });
 
+GameManager.on("gameError", (data) => {
+  sendToGameRoom(data.gameId, "gameError", data.error);
+});
+
 io.on("connection", (socket) => {
   socket.on("join", ({ gameId, name, playerId }) => {
     socket.join(gameId);
-    const game = GameManager.getGameInstance(gameId);
-    game.addPlayerToGame({ id: playerId, name, socketId: socket.id });
-    game.emitPlayerUpdates();
+    GameManager.addPlayerToGame(gameId, name, playerId, socket.id);
   });
 
   socket.on("startGame", ({ gameId }) => {
-    const game = GameManager.getGameInstance(gameId);
-    if (!game.hasGameStarted()) {
-      game.initializeGame();
-      game.startHand();
-      game.emitPlayerUpdates();
-      io.in(gameId).emit("gameStarted");
-    }
+    GameManager.startGame(gameId);
+    io.in(gameId).emit("gameStarted");
   });
 
   socket.on("activePlayerAction", ({ gameId, playerId, action, data }) => {
-    const game = GameManager.getGameInstance(gameId);
-    game.playerAction(playerId, action, data);
-
-    if (!game.hasHandEnded()) {
-      game.emitPlayerUpdates();
-      game.emitCommunityUpdates();
-    }
+    GameManager.playerAction(gameId, playerId, action, data);
   });
 
   socket.on("playerExit", ({ gameId, playerId }) => {

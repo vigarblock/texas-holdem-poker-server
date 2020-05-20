@@ -1,4 +1,5 @@
 const _ = require("lodash");
+const PlayerValidationError = require('./errors/playerValidationError');
 const MAX_PLAYER_LIMIT = 6;
 
 class PlayerService {
@@ -9,7 +10,7 @@ class PlayerService {
   addPlayer(data) {
     const playerPosition = this.players.length + 1;
     if (playerPosition > MAX_PLAYER_LIMIT) {
-      throw Error("Game has reached maximum allowed players");
+      throw new PlayerValidationError("Game has reached maximum allowed players");
     }
 
     const playerExists = this.getPlayer(data.id);
@@ -35,7 +36,7 @@ class PlayerService {
       this.players.push(player);
     } else {
       if(playerExists.hasLeft) {
-        throw Error("You cannot re-join a game you left");
+        throw new PlayerValidationError("You cannot re-join a game you left");
       }
       // Player disconnections will result in player being added back with 
       // new socket connection. Therefore, just update the socket ID
