@@ -218,9 +218,6 @@ class Game extends EventEmitter {
   }
 
   removePlayer(playerId) {
-    if (this.dealer && this.dealer.id === playerId) {
-      this.dealer = this._getNextPlayer(this.dealer.position);
-    }
     this.hand.addToExited(playerId);
     this.playerAction(playerId, "fold", null);
     this.playerService.updatePlayer(playerId, {
@@ -279,8 +276,6 @@ class Game extends EventEmitter {
 
     const nextPlayerId = sortedPlayerPositions[nextPlayerIndex].id;
 
-    console.log('Getting next player', nextPlayerId);
-
     return this.playerService
       .getAllPlayers()
       .find((p) => p.id === nextPlayerId);
@@ -334,6 +329,7 @@ class Game extends EventEmitter {
         }
 
         nextPlayerCalculationPosition = nextPlayer.position;
+        repeat = false;
       }
     }
   }
@@ -342,15 +338,18 @@ class Game extends EventEmitter {
     //  Game Rule: The next active player to the left(next position)
     //  of the dealer is first to decide after first bet agreement.
     let nextActivePlayer;
+    let position = this.dealer.position;
 
     let repeat = true;
     while (repeat) {
-      const nextPlayer = this._getNextPlayer(this.dealer.position);
+      const nextPlayer = this._getNextPlayer(position);
       const hasNextPlayerFolded = this.hand.hasPlayerFolded(nextPlayer.id);
 
       if (!hasNextPlayerFolded) {
         nextActivePlayer = nextPlayer;
         repeat = false;
+      } else {
+        position = nextPlayer.position;
       }
     }
 
