@@ -9,14 +9,14 @@ const playerWaitTimeoutMs = 30000;
 const startNewHandTimeoutMs = 10000;
 
 class Game extends EventEmitter {
-  constructor(id, startingChipsPerPlayer) {
+  constructor(id, minBet, startingChipsPerPlayer) {
     super();
     this.id = id;
     this.state = gameState.WAITING_FOR_GAME_START;
     this.dealer = null;
     this.activePlayerId = null;
     this.waitingForPlayerResponse = null;
-    this.minBet = 20;
+    this.minBet = minBet;
     this.startingChipsPerPlayer = startingChipsPerPlayer;
 
     this.playerService = new PlayerService();

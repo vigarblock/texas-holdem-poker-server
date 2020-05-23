@@ -9,22 +9,14 @@ const PlayerValidationError = require("./errors/playerValidationError");
 class GameManager extends EventEmitter {
   constructor() {
     super();
-
-    const gameId = "123456";
-    const game = new Game(gameId, 1000);
-
-    game.on("handWinner", (data) => this._emitGameHandWinner(gameId, data));
-    game.on("gameWinner", (data) => this._emitGameWinner(gameId, data));
-    game.on("playerUpdates", (data) => this._emitPlayerUpdates(gameId, data));
-    game.on("communityUpdates", (data) =>
-      this._emitCommunityUpdates(gameId, data)
-    );
-    this.games = [{ id: gameId, instance: game }];
+    this.games = [];
   }
 
-  createGame() {
+  createGame(minBet, startingChips) {
     const gameId = uuidv4();
-    const game = new Game(gameId, 1000);
+
+    console.log(`Creating new game with Id ${gameId}, minBet ${minBet} and startingChips ${startingChips}`);
+    const game = new Game(gameId, parseInt(minBet), parseInt(startingChips));
 
     game.on("handWinner", (data) => this._emitGameHandWinner(gameId, data));
     game.on("gameWinner", (data) => this._emitGameWinner(gameId, data));
@@ -140,6 +132,9 @@ class GameManager extends EventEmitter {
       this.games[index].instance.stopWaitingForPlayerResponse();
       this.games[index].instance = null;
       this.games.splice(index, 1);
+
+      console.log(`Removed game id ${gameId}`);
+      console.log(`Total active games is ${this.games.length}`);
     }
   }
 
