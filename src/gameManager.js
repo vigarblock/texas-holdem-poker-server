@@ -15,12 +15,16 @@ class GameManager extends EventEmitter {
   createGame(minBet, startingChips) {
     const gameId = uuidv4();
 
-    console.log(`Creating new game with Id ${gameId}, minBet ${minBet} and startingChips ${startingChips}`);
+    console.log(
+      `Creating new game with Id ${gameId}, minBet ${minBet} and startingChips ${startingChips}. ` +
+        `Total active games is ${this.games.length}`
+    );
     const game = new Game(gameId, parseInt(minBet), parseInt(startingChips));
 
     game.on("handWinner", (data) => this._emitGameHandWinner(gameId, data));
-    game.on("gameWinner", (data) => this._emitGameWinner(gameId, data));
-    game.on("communityUpdates", (data) => this._emitCommunityUpdates(gameId, data));
+    game.on("communityUpdates", (data) =>
+      this._emitCommunityUpdates(gameId, data)
+    );
     game.on("playerUpdates", (data) => this._emitPlayerUpdates(gameId, data));
 
     this.games.push({ id: gameId, instance: game });
@@ -35,7 +39,10 @@ class GameManager extends EventEmitter {
     } catch (error) {
       let baseMessage;
 
-      if(error instanceof PlayerValidationError || error instanceof GameNotFoundError){
+      if (
+        error instanceof PlayerValidationError ||
+        error instanceof GameNotFoundError
+      ) {
         baseMessage = error.message;
       } else {
         baseMessage = `An error occurred when adding player to game: ${gameId}`;
@@ -94,11 +101,9 @@ class GameManager extends EventEmitter {
       const remainingPlayers = gameInstance.getActivePlayerCount();
 
       if (remainingPlayers === 1) {
+        gameInstance.emitPlayerUpdates();
         gameInstance.stopWaitingForPlayerResponse();
-        const remainingPlayer = gameInstance
-          .getAllPlayers()
-          .find((p) => p.hasLeft === false);
-        this._emitGameWinner(gameId, remainingPlayer);
+        this._removeGameInstance(gameId);
       } else {
         gameInstance.emitPlayerUpdates();
       }
@@ -129,7 +134,7 @@ class GameManager extends EventEmitter {
   _removeGameInstance(gameId) {
     const index = this.games.findIndex((g) => g.id === gameId);
 
-    if(index !== -1) {
+    if (index !== -1) {
       this.games[index].instance.stopWaitingForPlayerResponse();
       this.games[index].instance = null;
       this.games.splice(index, 1);
@@ -152,13 +157,6 @@ class GameManager extends EventEmitter {
   _emitGameHandWinner(gameId, data) {
     data.gameId = gameId;
     this.emit("gameHandWinner", data);
-  }
-
-  _emitGameWinner(gameId, data) {
-    data.gameId = gameId;
-    this.emit("gameWinner", data);
-
-    this._removeGameInstance(gameId);
   }
 
   _emitGameError(gameId, error) {

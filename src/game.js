@@ -218,8 +218,11 @@ class Game extends EventEmitter {
   }
 
   removePlayer(playerId) {
-    this.hand.addToExited(playerId);
-    this.playerAction(playerId, "fold", null);
+    if(this.hand) {
+      this.hand.addToExited(playerId);
+      this.playerAction(playerId, "fold", null);
+    }
+    
     this.playerService.updatePlayer(playerId, {
       action: { name: "Left" },
       hasLeft: true,
@@ -490,19 +493,25 @@ class Game extends EventEmitter {
       playerData: hand.playerData,
     };
 
-    this.emit("handWinner", handWinnerData);
-    this.state = gameState.HAND_ENDED;
-
     if (this._shouldGameEnd()) {
-      const gameWinner = this._getGameWinner();
-      this.emit("gameWinner", gameWinner);
+      handWinnerData.gameWon = true;
+      handWinnerData.gameWinner = this._getGameWinner();
+      this.stopWaitingForPlayerResponse();
+      this._emitHandWinner(handWinnerData);
     } else {
+      this._emitHandWinner(handWinnerData);
       setTimeout(() => {
         this.startHand();
         this.emitPlayerUpdates();
         this.emitCommunityUpdates();
       }, startNewHandTimeoutMs);
     }
+
+    this.state = gameState.HAND_ENDED;
+  }
+
+  _emitHandWinner(data) {
+    this.emit("handWinner", data);
   }
 
   emitPlayerUpdates() {
@@ -523,7 +532,7 @@ class Game extends EventEmitter {
 
       playerUpdates.push(playerUpdate);
     });
-
+    
     this.emit("playerUpdates", playerUpdates);
   }
 
