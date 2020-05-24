@@ -20,6 +20,7 @@ class GameManager extends EventEmitter {
 
     game.on("handWinner", (data) => this._emitGameHandWinner(gameId, data));
     game.on("gameWinner", (data) => this._emitGameWinner(gameId, data));
+    game.on("communityUpdates", (data) => this._emitCommunityUpdates(gameId, data));
     game.on("playerUpdates", (data) => this._emitPlayerUpdates(gameId, data));
 
     this.games.push({ id: gameId, instance: game });
@@ -157,7 +158,6 @@ class GameManager extends EventEmitter {
     data.gameId = gameId;
     this.emit("gameWinner", data);
 
-    // Remove game from array
     this._removeGameInstance(gameId);
   }
 
