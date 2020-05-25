@@ -155,6 +155,11 @@ class GameManager extends EventEmitter {
   }
 
   _emitGameHandWinner(gameId, data) {
+    // If won, remove instance as game has ended
+    if(data.gameWon) {
+      this._removeGameInstance(gameId);
+    }
+
     data.gameId = gameId;
     this.emit("gameHandWinner", data);
   }
