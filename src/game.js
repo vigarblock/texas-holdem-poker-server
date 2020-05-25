@@ -78,8 +78,6 @@ class Game extends EventEmitter {
         playerHand: this.hand.getPlayerCardHand(),
       };
 
-      let initialPlayerContribution = 0;
-
       if (player.position === this.dealer.position) {
         playerData.isDealer = true;
       }
@@ -90,7 +88,7 @@ class Game extends EventEmitter {
         const smallBlindBet = this.minBet / 2;
         playerData.coins = player.coins - smallBlindBet;
         this.hand.addToPot(smallBlindBet);
-        initialPlayerContribution = smallBlindBet;
+        this.hand.addPlayerContribution(player.id, smallBlindBet);
         playerData.action = { name: "Small Blind", value: smallBlindBet };
       }
 
@@ -98,18 +96,17 @@ class Game extends EventEmitter {
         playerData.isBigBlind = true;
         playerData.coins = player.coins - this.minBet;
         this.hand.addToPot(this.minBet);
-        initialPlayerContribution = this.minBet;
+        this.hand.addPlayerContribution(player.id, this.minBet);
         playerData.action = { name: "Big Blind", value: this.minBet };
       }
 
       if (player.position === firstActivePlayer.position) {
         this.activePlayerId = player.id;
         playerData.isActive = true;
-        playerData.callAmount = this.minBet;
+        playerData.callAmount = this.hand.getMinCallAmount(player.id, player.coins);
       }
 
       this.playerService.updatePlayer(player.id, playerData);
-      this.hand.addPlayerContribution(player.id, initialPlayerContribution);
     });
 
     this.waitingForPlayerResponse = this.startWaitingForPlayerResponse();

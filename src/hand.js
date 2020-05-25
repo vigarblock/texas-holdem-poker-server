@@ -68,8 +68,6 @@ class Hand {
         this.communityCards.push(this.cardDeck.takeCards(1)[0]);
         break;
     }
-
-    console.log("Community Cards", this.communityCards);
   }
 
   setAutomaticHandWinner(player) {
@@ -111,12 +109,18 @@ class Hand {
 
     const playerContribution = this.getPlayerContribution(playerId);
 
+    let highestContribution = 0;
+
+    this.playerContributions.forEach((c) => {
+      if (c.contribution > highestContribution) {
+        highestContribution = c.contribution;
+      }
+    });
+
     if (coins > 0) {
-      this.playerContributions.forEach((c) => {
-        if (c.id !== playerId && c.contribution > playerContribution) {
-          callAmount = c.contribution - playerContribution;
-        }
-      });
+      if (highestContribution > playerContribution) {
+        callAmount = highestContribution - playerContribution;
+      }
     }
 
     if (callAmount > coins) {
