@@ -103,7 +103,10 @@ class Game extends EventEmitter {
       if (player.position === firstActivePlayer.position) {
         this.activePlayerId = player.id;
         playerData.isActive = true;
-        playerData.callAmount = this.hand.getMinCallAmount(player.id, player.coins);
+        playerData.callAmount = this.hand.getMinCallAmount(
+          player.id,
+          player.coins
+        );
       }
 
       this.playerService.updatePlayer(player.id, playerData);
@@ -215,11 +218,11 @@ class Game extends EventEmitter {
   }
 
   removePlayer(playerId) {
-    if(this.hand) {
+    if (this.hand) {
       this.hand.addToExited(playerId);
       this.playerAction(playerId, "fold", null);
     }
-    
+
     this.playerService.updatePlayer(playerId, {
       action: { name: "Left" },
       hasLeft: true,
@@ -307,7 +310,14 @@ class Game extends EventEmitter {
             nextPlayer.id,
             nextPlayer.coins
           );
-          const minRaiseAmount = this.minBet + callAmount;
+
+          let minRaiseAmount = 0;
+          if (nextPlayer.coins > this.minBet + callAmount) {
+            minRaiseAmount = this.minBet + callAmount;
+          } else if(nextPlayer.coins > callAmount) {
+            minRaiseAmount = nextPlayer.coins;
+          }
+          
           this.playerService.updatePlayer(nextPlayer.id, {
             isActive: true,
             callAmount,
@@ -529,7 +539,7 @@ class Game extends EventEmitter {
 
       playerUpdates.push(playerUpdate);
     });
-    
+
     this.emit("playerUpdates", playerUpdates);
   }
 
