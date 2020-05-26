@@ -24,3 +24,9 @@ yarn-error.log*
 
 service-account.json
 .vscode/settings.json
+
+# exclude everything
+client/build/*
+
+# exception to the rule
+!client/build/.gitkeep
