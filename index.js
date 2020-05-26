@@ -3,8 +3,10 @@ const socketio = require("socket.io");
 const http = require("http");
 const router = require("./router");
 const GameManager = require("./src/gameManager");
+const path = require('path');
 
 const app = express();
+app.use(express.static(path.join(__dirname, 'client/build')));
 app.use(router);
 const server = http.createServer(app);
 const io = socketio(server);
