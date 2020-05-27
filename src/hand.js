@@ -126,7 +126,7 @@ class Hand {
     if (callAmount > coins) {
       callAmount = coins;
     }
-
+    
     return callAmount;
   }
 

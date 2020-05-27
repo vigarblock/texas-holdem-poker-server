@@ -67,6 +67,7 @@ class Game extends EventEmitter {
     const bigBlindPlayer = this._getNextPlayer(smallBlindPlayer.position);
     const firstActivePlayer = this._getNextPlayer(bigBlindPlayer.position);
 
+    // Set up hand blinds
     joinedPlayers.forEach((player) => {
       const playerData = {
         isActive: false,
@@ -100,16 +101,17 @@ class Game extends EventEmitter {
         playerData.action = { name: "Big Blind", value: this.minBet };
       }
 
-      if (player.position === firstActivePlayer.position) {
-        this.activePlayerId = player.id;
-        playerData.isActive = true;
-        playerData.callAmount = this.hand.getMinCallAmount(
-          player.id,
-          player.coins
-        );
-      }
-
       this.playerService.updatePlayer(player.id, playerData);
+    });
+
+    // Once blinds have been set up, update the first active player
+    this.activePlayerId = firstActivePlayer.id;
+    this.playerService.updatePlayer(firstActivePlayer.id, {
+      isActive: true,
+      callAmount: this.hand.getMinCallAmount(
+        firstActivePlayer.id,
+        firstActivePlayer.coins
+      ),
     });
 
     this.waitingForPlayerResponse = this.startWaitingForPlayerResponse();
@@ -339,7 +341,6 @@ class Game extends EventEmitter {
         }
 
         nextPlayerCalculationPosition = nextPlayer.position;
-        repeat = false;
       }
     }
   }

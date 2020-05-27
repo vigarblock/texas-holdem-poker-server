@@ -66,7 +66,7 @@ describe("Game", () => {
     assert.equal(game.hand.state, expectedEndBettingState);
   });
 
-  it("Should reach bet agreement successfully in scenarios where a player leave during a hand", () => {
+  it("Should reach bet agreement successfully in scenarios where a player leaves during a hand", () => {
     // Arrange
     const expectedStartBetState = bettingState.PREFLOPBET;
     const expectedEndBettingState = bettingState.FLOPBET;
@@ -94,7 +94,7 @@ describe("Game", () => {
     assert.equal(game.hand.state, expectedEndBettingState);
   });
 
-  it("Should determine the call amount of starting player correctly in a game with more than 2 players", () => {
+  it("Should determine the call amount of starting player correctly in a game with more than 2 players - bug fix", () => {
     // Arrange
     const expectedAmount = 20;
     const expectedStartingPlayerId = "4";
@@ -107,7 +107,7 @@ describe("Game", () => {
     assert.equal(startingPlayer.callAmount, expectedAmount);
   });
 
-  it("Should determine the call amount of starting player correctly in a 2 player game", () => {
+  it("Should determine the call amount of starting player correctly in a 2 player game - bug fix", () => {
     // P1 is dealer, therefore initial contribution is 0.
     // P2 is small blind, therefore contribution is 1/2 min bet = 10.
     // Since only 2 player game, P1 is also big blind, therefore contribution is min bet = 20;
@@ -126,5 +126,82 @@ describe("Game", () => {
     // Assert
     assert.equal(startingPlayer.isActive, true);
     assert.equal(startingPlayer.callAmount, 10);
+  });
+
+  it("Should set the call amount of starting player correctly in a 3 player game - bug fix", () => {
+    // Arrange
+    game = new Game("123456", minBet, startingPlayerCoins);
+    game.addPlayerToGame({ id: "1", name: "player1", socketId: "s1" });
+    game.addPlayerToGame({ id: "2", name: "player2", socketId: "s2" });
+    game.addPlayerToGame({ id: "3", name: "player3", socketId: "s3" });
+    game.initializeGame();
+    game.startHand();
+
+    // Act and assert
+    const startingPlayer = game.getPlayer("1");
+    assert.equal(startingPlayer.callAmount, minBet);
+  });
+
+  it("Should progress hand to completion when a player folds on turn bet - bug fix", () => {
+    // Arrange
+    game = new Game("123456", minBet, startingPlayerCoins);
+    game.addPlayerToGame({ id: "1", name: "player1", socketId: "s1" });
+    game.addPlayerToGame({ id: "2", name: "player2", socketId: "s2" });
+    game.addPlayerToGame({ id: "3", name: "player3", socketId: "s3" });
+    game.initializeGame();
+    game.startHand();
+
+    // Act and assert
+
+    // Preflop bet
+    const startingPlayer = game.getPlayer("1");
+    assert.equal(startingPlayer.callAmount, minBet);
+
+    game.playerAction("1", "check", null);
+    assert.equal(game.getPlayer('2').isActive, true);
+
+    game.playerAction("2", "call", game.getPlayer("2").callAmount);
+    assert.equal(game.getPlayer('3').isActive, true);
+
+    game.playerAction("3", "check", null);
+    assert.equal(game.getPlayer('2').isActive, true);
+
+
+    // Flop bet
+    game.playerAction("2", "check", null);
+    assert.equal(game.getPlayer('3').isActive, true);
+
+    game.playerAction("3", "check", null);
+    assert.equal(game.getPlayer('1').isActive, true);
+
+    game.playerAction("1", "check", null);
+    assert.equal(game.getPlayer('2').isActive, true);
+
+    // Turn bet
+    game.playerAction("2", "check", null);
+    assert.equal(game.getPlayer('3').isActive, true);
+
+    game.playerAction("3", "check", null);
+    assert.equal(game.getPlayer('1').isActive, true);
+
+    game.playerAction("1", "raise", 20);
+    assert.equal(game.getPlayer('2').isActive, true);
+
+    game.playerAction("2", "call", game.getPlayer("2").callAmount);
+    assert.equal(game.getPlayer('3').isActive, true);
+
+    game.playerAction("3", "fold", null);
+    assert.equal(game.getPlayer('2').isActive, true);
+
+    // River bet
+    game.playerAction("2", "check", null);
+    assert.equal(game.getPlayer('1').isActive, true);
+
+    game.playerAction("1", "check", null);
+
+    // Assert winner
+    assert.equal(game.getPlayer('1').isActive, false);
+    assert.equal(game.getPlayer('2').isActive, false);
+    assert.equal(game.state, gameState.HAND_ENDED);
   });
 });
