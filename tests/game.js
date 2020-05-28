@@ -29,6 +29,37 @@ describe("Game", () => {
     clock.restore();
   });
 
+  it("Should throw an error when a player tries to join after a game has started", () => {
+    // Arrange
+    game = new Game("123456", minBet, startingPlayerCoins);
+    game.addPlayerToGame({ id: "1", name: "player1", socketId: "s1" });
+    game.addPlayerToGame({ id: "2", name: "player2", socketId: "s2" });
+    game.initializeGame();
+    game.startHand();
+
+    // Act and assert
+    assert.throws(() => {
+      game.addPlayerToGame({ id: "3", name: "player3", socketId: "s3" });
+    }, {
+      name: 'GameHasStartedError',
+      message: 'You cannot join a game that has already started',
+    });
+  });
+
+  it("Should allow a player to reconnect with same ID but different socket ID after game has started", () => {
+    // Arrange
+    game = new Game("123456", minBet, startingPlayerCoins);
+    game.addPlayerToGame({ id: "1", name: "player1", socketId: "s1" });
+    game.addPlayerToGame({ id: "2", name: "player2", socketId: "s2" });
+    game.initializeGame();
+    game.startHand();
+
+    // Act and assert
+    assert.doesNotThrow(() => {
+      game.addPlayerToGame({ id: "2", name: "player2", socketId: "s3" });
+    });
+  });
+
   it("Should determine the player roles based on joining positions when first hand starts", () => {
     // Arrange
     const dealerId = "1";

@@ -210,13 +210,15 @@ class Game extends EventEmitter {
   }
 
   addPlayerToGame({ id, name, socketId }) {
-    if (this.state === gameState.WAITING_FOR_GAME_START) {
-      this.playerService.addPlayer({ id, name, socketId });
-    } else {
+    const playerExists = this.playerService.getPlayer(id);
+
+    if(!playerExists && this.state !== gameState.WAITING_FOR_GAME_START) {
       throw new GameHasStartedError(
         "You cannot join a game that has already started"
       );
     }
+
+    this.playerService.addPlayer({ id, name, socketId });
   }
 
   hasGameStarted() {
