@@ -31,6 +31,7 @@ class PlayerService {
         action: { name: "Joined", value: "" },
         playerHand: [],
         hasLeft: false,
+        hasLost: false,
       };
   
       this.players.push(player);
@@ -58,6 +59,7 @@ class PlayerService {
       action,
       playerHand,
       hasLeft,
+      hasLost,
     }
   ) {
     this.players.forEach((player) => {
@@ -104,6 +106,10 @@ class PlayerService {
 
         if (hasLeft !== undefined) {
           player.hasLeft = hasLeft;
+        }
+
+        if (hasLost !== undefined) {
+          player.hasLost = hasLost;
         }
 
         return player;

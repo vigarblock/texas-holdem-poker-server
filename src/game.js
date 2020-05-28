@@ -44,7 +44,12 @@ class Game extends EventEmitter {
     this.hand.initializeHand();
 
     this.playerService.getAllPlayers().forEach((player) => {
-      if (!player.hasLeft) {
+      if(!player.hasLost && player.coins === 0) {
+        this.playerService.updatePlayer(player.id, {
+          action: { name: "Lost", value: "" },
+          hasLost: true,
+        });
+      } else if (!player.hasLeft) {
         this.playerService.updatePlayer(player.id, {
           action: { name: "Ready", value: "" },
           callAmount: 0,
@@ -258,14 +263,14 @@ class Game extends EventEmitter {
 
   getActivePlayerCount() {
     const allPlayers = this.getAllPlayers();
-    const activePlayers = allPlayers.filter((p) => p.hasLeft === false);
+    const activePlayers = allPlayers.filter((p) => p.hasLeft === false && p.hasLost === false);
     return activePlayers.length;
   }
 
   _getNextPlayer(currentPlayerPosition) {
     const allPlayers = this.getAllPlayers();
     const remainingEligiblePlayers = allPlayers.filter(
-      (p) => p.hasLeft === false
+      (p) => p.hasLeft === false && p.hasLost === false
     );
 
     const sortedPlayerPositions = _.sortBy(remainingEligiblePlayers, [
@@ -303,9 +308,14 @@ class Game extends EventEmitter {
     let nextPlayerCalculationPosition = player.position;
     while (repeat) {
       const nextPlayer = this._getNextPlayer(nextPlayerCalculationPosition);
+      console.log(`Next player is  ${nextPlayer.name}`);
 
       if (this.hand.doesPlayerNeedToTakeAction(nextPlayer.id)) {
+      console.log(`Next player need to take action  ${nextPlayer.name}`);
+
         if (this.hand.hasEveryoneElseFolded(this.getActivePlayerCount())) {
+      console.log(`Evryone else has folded  ${nextPlayer.name}`);
+
           // Make this player the automatic winner
           this.hand.setAutomaticHandWinner(nextPlayer);
           this.hand.addToBetAgreement(nextPlayer);
@@ -313,6 +323,8 @@ class Game extends EventEmitter {
           this.hand.clearBetAgreedPlayers();
           repeat = false;
         } else {
+      console.log(`Everyone else has not folded  ${nextPlayer.name}`);
+
           const callAmount = this.hand.getMinCallAmount(
             nextPlayer.id,
             nextPlayer.coins
@@ -335,7 +347,11 @@ class Game extends EventEmitter {
           repeat = false;
         }
       } else {
+      console.log(`Next player does not need to take action  ${nextPlayer.name}`);
+
         if (this.hand.havePlayersAgreedOnBet(this.getActivePlayerCount())) {
+      console.log(`Players have agreed on bet  ${nextPlayer.name}`);
+
           if (this.hand.hasEveryoneElseFolded(this.getActivePlayerCount())) {
             this.hand.setAutomaticHandWinner(this.hand.betAgreedPlayers[0]);
           }
@@ -453,7 +469,7 @@ class Game extends EventEmitter {
   _shouldGameEnd() {
     const allActivePlayers = this.playerService
       .getAllPlayers()
-      .filter((p) => p.hasLeft === false);
+      .filter((p) => p.hasLeft === false && p.hasLost === false);
 
     const lostPlayers = [];
     _.find(allActivePlayers, (player) => {
