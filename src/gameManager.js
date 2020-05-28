@@ -5,6 +5,7 @@ const Game = require("./game");
 
 const GameNotFoundError = require("./errors/gameNotFoundError");
 const PlayerValidationError = require("./errors/playerValidationError");
+const GameHasStartedError = require("./errors/gameHasStartedError");
 
 class GameManager extends EventEmitter {
   constructor() {
@@ -36,11 +37,13 @@ class GameManager extends EventEmitter {
       const game = this._getGameInstance(gameId);
       game.addPlayerToGame({ id: playerId, name, socketId });
       game.emitPlayerUpdates();
+      return true;
     } catch (error) {
       let baseMessage;
 
       if (
         error instanceof PlayerValidationError ||
+        error instanceof GameHasStartedError ||
         error instanceof GameNotFoundError
       ) {
         baseMessage = error.message;
@@ -48,8 +51,8 @@ class GameManager extends EventEmitter {
         baseMessage = `An error occurred when adding player to game: ${gameId}`;
       }
       console.log(`${baseMessage}. Details : ${error}`);
-      this._emitGameError(gameId, baseMessage);
-      this._removeGameInstance(gameId);
+      this._emitPlayerError(gameId, { socketId, error: baseMessage });
+      return false;
     }
   }
 
@@ -86,7 +89,7 @@ class GameManager extends EventEmitter {
         error instanceof GameNotFoundError
           ? error.message
           : `An error occurred when executing player -'${playerId}' ` +
-            `action to game: ${gameId}`;
+            `action in game: ${gameId}. Unfortunately this crashed the game.`;
       console.log(`${baseMessage}. Details : ${error}`);
       this._emitGameError(gameId, baseMessage);
       this._removeGameInstance(gameId);
@@ -112,7 +115,7 @@ class GameManager extends EventEmitter {
         error instanceof GameNotFoundError
           ? error.message
           : `An error occurred when removing player -'${playerId}' ` +
-            `from game: ${gameId}`;
+            `from game: ${gameId}. Unfortunately this crashed the game.`;
       console.log(`${baseMessage}. Details : ${error}`);
       this._emitGameError(gameId, baseMessage);
       this._removeGameInstance(gameId);
@@ -156,7 +159,7 @@ class GameManager extends EventEmitter {
 
   _emitGameHandWinner(gameId, data) {
     // If won, remove instance as game has ended
-    if(data.gameWon) {
+    if (data.gameWon) {
       this._removeGameInstance(gameId);
     }
 
@@ -166,6 +169,10 @@ class GameManager extends EventEmitter {
 
   _emitGameError(gameId, error) {
     this.emit("gameError", { gameId, error });
+  }
+
+  _emitPlayerError(gameId, data) {
+    this.emit("gamePlayerError", data);
   }
 }
 

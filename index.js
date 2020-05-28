@@ -44,10 +44,16 @@ GameManager.on("gameError", (data) => {
   sendToGameRoom(data.gameId, "gameError", data.error);
 });
 
+GameManager.on("gamePlayerError", (data) => {
+  console.log('Sending error to ', data);
+  sendToIndividualPlayer(data.socketId, "gameError", data.error);
+});
+
 io.on("connection", (socket) => {
   socket.on("join", ({ gameId, name, playerId }) => {
-    socket.join(gameId);
-    GameManager.addPlayerToGame(gameId, name, playerId, socket.id);
+    if(GameManager.addPlayerToGame(gameId, name, playerId, socket.id)){
+      socket.join(gameId);
+    }
   });
 
   socket.on("startGame", ({ gameId }) => {

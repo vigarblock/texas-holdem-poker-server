@@ -2,6 +2,7 @@ const EventEmitter = require("events");
 const _ = require("lodash");
 const Hand = require("./hand");
 const PlayerService = require("./playerService");
+const GameHasStartedError = require('./errors/gameHasStartedError');
 const winDeterminer = require("../src/texas-holdem/winDeterminer");
 const bettingState = require("../src/constants/bettingState");
 const gameState = require("../src/constants/gameState");
@@ -204,7 +205,11 @@ class Game extends EventEmitter {
   }
 
   addPlayerToGame({ id, name, socketId }) {
-    this.playerService.addPlayer({ id, name, socketId });
+    if(this.state === gameState.WAITING_FOR_GAME_START) {
+      this.playerService.addPlayer({ id, name, socketId });
+    } else {
+      throw new GameHasStartedError("You cannot join a game that has already started");
+    }
   }
 
   hasGameStarted() {
