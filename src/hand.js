@@ -42,11 +42,21 @@ class Hand {
     );
 
     if (!playerExists) {
-      this.playerContributions.push({ id: playerId, contribution });
+      this.playerContributions.push({
+        id: playerId,
+        totalContribution: contribution,
+        [this.state]: contribution,
+      });
     } else {
       this.playerContributions.forEach((c) => {
         if (c.id === playerId) {
-          c.contribution += contribution;
+          c.totalContribution += contribution;
+
+          if(!c[this.state]) {
+            c[this.state] = contribution;
+          } else {
+            c[this.state] += contribution;
+          }
         }
       });
     }
@@ -84,7 +94,20 @@ class Hand {
       return 0;
     }
 
-    return contributor.contribution;
+    return contributor.totalContribution;
+  }
+
+  getPlayerHandStateContribution(playerId) {
+    const contributor = _.find(
+      this.playerContributions,
+      (c) => c.id === playerId
+    );
+
+    if (!contributor || !contributor[this.state]) {
+      return 0;
+    }
+
+    return contributor[this.state];
   }
 
   getPlayerCardHand() {
@@ -112,8 +135,8 @@ class Hand {
     let highestContribution = 0;
 
     this.playerContributions.forEach((c) => {
-      if (c.contribution > highestContribution) {
-        highestContribution = c.contribution;
+      if (c.totalContribution > highestContribution) {
+        highestContribution = c.totalContribution;
       }
     });
 
@@ -126,7 +149,7 @@ class Hand {
     if (callAmount > coins) {
       callAmount = coins;
     }
-    
+
     return callAmount;
   }
 
@@ -171,16 +194,16 @@ class Hand {
 
     this.playerContributions.forEach((c) => {
       if (c.id !== winnerId) {
-        if (c.contribution > winnerContribution) {
+        if (c.totalContribution > winnerContribution) {
           winnerCoins += winnerContribution;
-          c.contribution -= winnerContribution;
+          c.totalContribution -= winnerContribution;
           playersToBeReimbursed.push({
             id: c.id,
-            reimbursment: c.contribution,
+            reimbursment: c.totalContribution,
           });
         } else {
-          winnerCoins += c.contribution;
-          c.contribution = 0;
+          winnerCoins += c.totalContribution;
+          c.totalContribution = 0;
         }
       }
     });

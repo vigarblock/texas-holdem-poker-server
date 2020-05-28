@@ -94,6 +94,194 @@ describe("Game", () => {
     assert.equal(game.hand.state, expectedEndBettingState);
   });
 
+  it("Should calculate total player contributions correctly", () => {
+    // Arrange - 3 player game for simplicity
+    game = new Game("123456", minBet, startingPlayerCoins);
+    game.addPlayerToGame({ id: "1", name: "player1", socketId: "s1" });
+    game.addPlayerToGame({ id: "2", name: "player2", socketId: "s2" });
+    game.addPlayerToGame({ id: "3", name: "player3", socketId: "s3" });
+    game.initializeGame();
+    game.startHand();
+
+    // Act and assert
+
+    // Preflop bet
+    const startingPlayer = game.getPlayer("1");
+    assert.equal(startingPlayer.callAmount, minBet);
+
+    game.playerAction("1", "call", game.getPlayer("1").callAmount);
+    assert.equal(game.getPlayer('2').isActive, true);
+
+    game.playerAction("2", "call", game.getPlayer("2").callAmount);
+    assert.equal(game.getPlayer('3').isActive, true);
+
+    game.playerAction("3", "check", null);
+    assert.equal(game.getPlayer('2').isActive, true);
+
+    assert.equal(game.hand.getPlayerContribution('1'), 20);
+    assert.equal(game.hand.getPlayerContribution('2'), 20);
+    assert.equal(game.hand.getPlayerContribution('3'), 20);
+
+    // Flop bet
+    game.playerAction("2", "check", null);
+    assert.equal(game.getPlayer('3').isActive, true);
+
+    game.playerAction("3", "check", null);
+    assert.equal(game.getPlayer('1').isActive, true);
+
+    game.playerAction("1", "check", null);
+    assert.equal(game.getPlayer('2').isActive, true);
+
+    assert.equal(game.hand.getPlayerContribution('1'), 20);
+    assert.equal(game.hand.getPlayerContribution('2'), 20);
+    assert.equal(game.hand.getPlayerContribution('3'), 20);
+
+    // Turn bet
+    game.playerAction("2", "raise", 60);
+    assert.equal(game.getPlayer('3').isActive, true);
+
+    game.playerAction("3", "call", 60);
+    assert.equal(game.getPlayer('1').isActive, true);
+
+    game.playerAction("1", "fold", null);
+    assert.equal(game.getPlayer('2').isActive, true);
+
+    assert.equal(game.hand.getPlayerContribution('1'), 20);
+    assert.equal(game.hand.getPlayerContribution('2'), 80);
+    assert.equal(game.hand.getPlayerContribution('3'), 80);
+
+    // River bet
+    game.playerAction("2", "raise", 40);
+    assert.equal(game.getPlayer('3').isActive, true);
+
+    game.playerAction("3", "fold", null);
+
+    assert.equal(game.hand.getPlayerContribution('1'), 0);
+    assert.equal(game.hand.getPlayerContribution('2'), 120);
+    assert.equal(game.hand.getPlayerContribution('3'), 0);
+  });
+
+  it("Should emit each player's betting state contributions correctly", () => {
+    // Arrange - 3 player game for simplicity
+    game = new Game("123456", minBet, startingPlayerCoins);
+    game.addPlayerToGame({ id: "1", name: "player1", socketId: "s1" });
+    game.addPlayerToGame({ id: "2", name: "player2", socketId: "s2" });
+    game.addPlayerToGame({ id: "3", name: "player3", socketId: "s3" });
+    game.initializeGame();
+    game.startHand();
+
+    let expectedP1Contribution;
+    let expectedP2Contribution;
+    let expectedP3Contribution;
+
+    game.on("playerUpdates", (playerUpdates) => {
+      playerUpdates.forEach(p => {
+        if(p.playerData.id === '1'){
+          assert.equal(p.playerData.betContribution, expectedP1Contribution)
+        }
+
+        if(p.playerData.id === '2'){
+          assert.equal(p.playerData.betContribution, expectedP2Contribution)
+        }
+
+        if(p.playerData.id === '3'){
+          assert.equal(p.playerData.betContribution, expectedP3Contribution)
+        }
+      });
+    });
+
+    // Act and assert
+    expectedP1Contribution = 0;
+    expectedP2Contribution = 10;
+    expectedP3Contribution = 20;
+    game.emitPlayerUpdates();
+
+    // Preflop bet
+    game.playerAction("1", "call", game.getPlayer("1").callAmount);
+
+    expectedP1Contribution = 20;
+    expectedP2Contribution = 10;
+    expectedP3Contribution = 20;
+    game.emitPlayerUpdates();
+
+    game.playerAction("2", "call", game.getPlayer("2").callAmount);
+
+    expectedP1Contribution = 20;
+    expectedP2Contribution = 20;
+    expectedP3Contribution = 20;
+    game.emitPlayerUpdates();
+
+    game.playerAction("3", "check", null);
+
+    // Flop bet
+    expectedP1Contribution = 0;
+    expectedP2Contribution = 0;
+    expectedP3Contribution = 0;
+    game.emitPlayerUpdates();
+
+    game.playerAction("2", "check", null);
+    assert.equal(game.getPlayer('3').isActive, true);
+
+    expectedP1Contribution = 0;
+    expectedP2Contribution = 0;
+    expectedP3Contribution = 0;
+    game.emitPlayerUpdates();
+
+    game.playerAction("3", "check", null);
+    assert.equal(game.getPlayer('1').isActive, true);
+
+    expectedP1Contribution = 0;
+    expectedP2Contribution = 0;
+    expectedP3Contribution = 0;
+    game.emitPlayerUpdates();
+
+    game.playerAction("1", "check", null);
+    assert.equal(game.getPlayer('2').isActive, true);
+
+    // Turn bet
+    expectedP1Contribution = 0;
+    expectedP2Contribution = 0;
+    expectedP3Contribution = 0;
+    game.emitPlayerUpdates();
+
+    game.playerAction("2", "raise", 60);
+
+    expectedP1Contribution = 0;
+    expectedP2Contribution = 60;
+    expectedP3Contribution = 0;
+    game.emitPlayerUpdates();
+
+    game.playerAction("3", "call", 60);
+
+    expectedP1Contribution = 0;
+    expectedP2Contribution = 60;
+    expectedP3Contribution = 60;
+    game.emitPlayerUpdates();
+
+    game.playerAction("1", "fold", null);
+    assert.equal(game.getPlayer('2').isActive, true);
+
+    // River bet
+    expectedP1Contribution = 0;
+    expectedP2Contribution = 0;
+    expectedP3Contribution = 0;
+    game.emitPlayerUpdates();
+
+    game.playerAction("2", "raise", 40);
+    
+    expectedP1Contribution = 0;
+    expectedP2Contribution = 40;
+    expectedP3Contribution = 0;
+    game.emitPlayerUpdates();
+
+    game.playerAction("3", "fold", null);
+
+    expectedP1Contribution = 0;
+    expectedP2Contribution = 40;
+    expectedP3Contribution = 0;
+    game.emitPlayerUpdates();
+  });
+
   it("Should determine the call amount of starting player correctly in a game with more than 2 players - bug fix", () => {
     // Arrange
     const expectedAmount = 20;
@@ -157,7 +345,7 @@ describe("Game", () => {
     const startingPlayer = game.getPlayer("1");
     assert.equal(startingPlayer.callAmount, minBet);
 
-    game.playerAction("1", "check", null);
+    game.playerAction("1", "call", game.getPlayer("1").callAmount);
     assert.equal(game.getPlayer('2').isActive, true);
 
     game.playerAction("2", "call", game.getPlayer("2").callAmount);

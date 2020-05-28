@@ -316,10 +316,10 @@ class Game extends EventEmitter {
           let minRaiseAmount = 0;
           if (nextPlayer.coins > this.minBet + callAmount) {
             minRaiseAmount = this.minBet + callAmount;
-          } else if(nextPlayer.coins > callAmount) {
+          } else if (nextPlayer.coins > callAmount) {
             minRaiseAmount = nextPlayer.coins;
           }
-          
+
           this.playerService.updatePlayer(nextPlayer.id, {
             isActive: true,
             callAmount,
@@ -526,6 +526,12 @@ class Game extends EventEmitter {
     const playerUpdates = [];
 
     this.playerService.getAllPlayers().forEach((player) => {
+      if (this.state !== gameState.WAITING_FOR_GAME_START) {
+        player.betContribution = this.hand.getPlayerHandStateContribution(
+          player.id
+        );
+      }
+
       const playerUpdate = {
         socketId: player.socketId,
         playerData: player,
@@ -535,6 +541,12 @@ class Game extends EventEmitter {
       const opponentsData = this.playerService.getOpponentPlayers(player.id);
 
       if (opponentsData.length > 0) {
+        if (this.state !== gameState.WAITING_FOR_GAME_START) {
+          opponentsData.forEach((o) => {
+            o.betContribution = this.hand.getPlayerHandStateContribution(o.id);
+          });
+        }
+
         playerUpdate.opponentsData = opponentsData;
       }
 
