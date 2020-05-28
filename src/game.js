@@ -2,7 +2,7 @@ const EventEmitter = require("events");
 const _ = require("lodash");
 const Hand = require("./hand");
 const PlayerService = require("./playerService");
-const GameHasStartedError = require('./errors/gameHasStartedError');
+const GameHasStartedError = require("./errors/gameHasStartedError");
 const winDeterminer = require("../src/texas-holdem/winDeterminer");
 const bettingState = require("../src/constants/bettingState");
 const gameState = require("../src/constants/gameState");
@@ -44,7 +44,7 @@ class Game extends EventEmitter {
     this.hand.initializeHand();
 
     this.playerService.getAllPlayers().forEach((player) => {
-      if(!player.hasLost && player.coins === 0) {
+      if (!player.hasLost && player.coins === 0) {
         this.playerService.updatePlayer(player.id, {
           action: { name: "Lost", value: "" },
           hasLost: true,
@@ -210,10 +210,12 @@ class Game extends EventEmitter {
   }
 
   addPlayerToGame({ id, name, socketId }) {
-    if(this.state === gameState.WAITING_FOR_GAME_START) {
+    if (this.state === gameState.WAITING_FOR_GAME_START) {
       this.playerService.addPlayer({ id, name, socketId });
     } else {
-      throw new GameHasStartedError("You cannot join a game that has already started");
+      throw new GameHasStartedError(
+        "You cannot join a game that has already started"
+      );
     }
   }
 
@@ -263,7 +265,9 @@ class Game extends EventEmitter {
 
   getActivePlayerCount() {
     const allPlayers = this.getAllPlayers();
-    const activePlayers = allPlayers.filter((p) => p.hasLeft === false && p.hasLost === false);
+    const activePlayers = allPlayers.filter(
+      (p) => p.hasLeft === false && p.hasLost === false
+    );
     return activePlayers.length;
   }
 
@@ -308,14 +312,9 @@ class Game extends EventEmitter {
     let nextPlayerCalculationPosition = player.position;
     while (repeat) {
       const nextPlayer = this._getNextPlayer(nextPlayerCalculationPosition);
-      console.log(`Next player is  ${nextPlayer.name}`);
 
       if (this.hand.doesPlayerNeedToTakeAction(nextPlayer.id)) {
-      console.log(`Next player need to take action  ${nextPlayer.name}`);
-
         if (this.hand.hasEveryoneElseFolded(this.getActivePlayerCount())) {
-      console.log(`Evryone else has folded  ${nextPlayer.name}`);
-
           // Make this player the automatic winner
           this.hand.setAutomaticHandWinner(nextPlayer);
           this.hand.addToBetAgreement(nextPlayer);
@@ -323,8 +322,6 @@ class Game extends EventEmitter {
           this.hand.clearBetAgreedPlayers();
           repeat = false;
         } else {
-      console.log(`Everyone else has not folded  ${nextPlayer.name}`);
-
           const callAmount = this.hand.getMinCallAmount(
             nextPlayer.id,
             nextPlayer.coins
@@ -347,11 +344,7 @@ class Game extends EventEmitter {
           repeat = false;
         }
       } else {
-      console.log(`Next player does not need to take action  ${nextPlayer.name}`);
-
         if (this.hand.havePlayersAgreedOnBet(this.getActivePlayerCount())) {
-      console.log(`Players have agreed on bet  ${nextPlayer.name}`);
-
           if (this.hand.hasEveryoneElseFolded(this.getActivePlayerCount())) {
             this.hand.setAutomaticHandWinner(this.hand.betAgreedPlayers[0]);
           }
