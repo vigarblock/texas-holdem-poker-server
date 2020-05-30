@@ -1,6 +1,6 @@
 const _ = require("lodash");
 const PlayerValidationError = require('./errors/playerValidationError');
-const MAX_PLAYER_LIMIT = 6;
+const MAX_PLAYER_LIMIT = 8;
 
 class PlayerService {
   constructor() {

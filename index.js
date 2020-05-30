@@ -3,10 +3,10 @@ const socketio = require("socket.io");
 const http = require("http");
 const router = require("./router");
 const GameManager = require("./src/gameManager");
-const path = require('path');
+const path = require("path");
 
 const app = express();
-app.use(express.static(path.join(__dirname, 'client/build')));
+app.use(express.static(path.join(__dirname, "client/build")));
 app.use(router);
 const server = http.createServer(app);
 const io = socketio(server);
@@ -45,13 +45,13 @@ GameManager.on("gameError", (data) => {
 });
 
 GameManager.on("gamePlayerError", (data) => {
-  console.log('Sending error to ', data);
+  console.log("Sending error to ", data);
   sendToIndividualPlayer(data.socketId, "gameError", data.error);
 });
 
 io.on("connection", (socket) => {
   socket.on("join", ({ gameId, name, playerId }) => {
-    if(GameManager.addPlayerToGame(gameId, name, playerId, socket.id)){
+    if (GameManager.addPlayerToGame(gameId, name, playerId, socket.id)) {
       socket.join(gameId);
     }
   });
@@ -68,6 +68,10 @@ io.on("connection", (socket) => {
   socket.on("playerExit", ({ gameId, playerId }) => {
     GameManager.playerExit(gameId, playerId);
     socket.leave(gameId);
+  });
+
+  socket.on("playerMessage", ({ gameId, id, playerName, message }) => {
+    io.in(gameId).emit("gameMessage", { id, name: playerName, message });
   });
 
   socket.on("disconnect", () => {
