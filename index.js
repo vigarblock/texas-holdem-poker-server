@@ -1,5 +1,6 @@
 const express = require("express");
 const socketio = require("socket.io");
+const { v4: uuidv4 } = require("uuid");
 const http = require("http");
 const router = require("./router");
 const GameManager = require("./src/gameManager");
@@ -32,12 +33,12 @@ GameManager.on("communityUpdates", (data) => {
 });
 
 GameManager.on("playerUpdates", (data) => {
-  console.log('Sending player updates', data.timeStamp);
+  console.log("Sending player updates", data.timeStamp);
   data.updates.forEach((p) => {
     sendToIndividualPlayer(p.socketId, "playerUpdates", {
       playerData: p.playerData,
       opponentsData: p.opponentsData,
-      timeStamp: data.timeStamp
+      timeStamp: data.timeStamp,
     });
   });
 });
@@ -54,6 +55,13 @@ io.on("connection", (socket) => {
   socket.on("join", ({ gameId, name, playerId }) => {
     if (GameManager.addPlayerToGame(gameId, name, playerId, socket.id)) {
       socket.join(gameId);
+      io.in(gameId).emit("gameMessage", {
+        id: uuidv4(),
+        name: "Game Admin",
+        message:
+          `${name.toUpperCase()} ` +
+          `joined the game. Click Start Game if all players have joined.`,
+      });
     }
   });
 
