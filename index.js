@@ -31,11 +31,13 @@ GameManager.on("communityUpdates", (data) => {
   sendToGameRoom(data.gameId, "communityUpdates", data);
 });
 
-GameManager.on("playerUpdates", (updates) => {
-  updates.forEach((p) => {
+GameManager.on("playerUpdates", (data) => {
+  console.log('Sending player updates', data.timeStamp);
+  data.updates.forEach((p) => {
     sendToIndividualPlayer(p.socketId, "playerUpdates", {
       playerData: p.playerData,
       opponentsData: p.opponentsData,
+      timeStamp: data.timeStamp
     });
   });
 });
@@ -45,7 +47,6 @@ GameManager.on("gameError", (data) => {
 });
 
 GameManager.on("gamePlayerError", (data) => {
-  console.log("Sending error to ", data);
   sendToIndividualPlayer(data.socketId, "gameError", data.error);
 });
 

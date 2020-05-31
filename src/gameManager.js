@@ -26,7 +26,7 @@ class GameManager extends EventEmitter {
     game.on("communityUpdates", (data) =>
       this._emitCommunityUpdates(gameId, data)
     );
-    game.on("playerUpdates", (data) => this._emitPlayerUpdates(gameId, data));
+    game.on("playerUpdates", (data) => this._emitPlayerUpdates(data));
 
     this.games.push({ id: gameId, instance: game });
     return gameId;
@@ -147,9 +147,8 @@ class GameManager extends EventEmitter {
     }
   }
 
-  _emitPlayerUpdates(gameId, data) {
-    data.gameId = gameId;
-    this.emit("playerUpdates", data);
+  _emitPlayerUpdates(updates) {
+    this.emit("playerUpdates", { timeStamp: Date.now(), updates});
   }
 
   _emitCommunityUpdates(gameId, data) {

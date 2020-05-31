@@ -6,7 +6,7 @@ const GameHasStartedError = require("./errors/gameHasStartedError");
 const winDeterminer = require("../src/texas-holdem/winDeterminer");
 const bettingState = require("../src/constants/bettingState");
 const gameState = require("../src/constants/gameState");
-const playerWaitTimeoutMs = 30000;
+const playerWaitTimeoutMs = 32000; // 30s timeout with 2 sec buffer for clients.
 const startNewHandTimeoutMs = 10000;
 
 class Game extends EventEmitter {
