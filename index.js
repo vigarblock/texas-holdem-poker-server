@@ -55,13 +55,14 @@ io.on("connection", (socket) => {
   socket.on("join", ({ gameId, name, playerId }) => {
     if (GameManager.addPlayerToGame(gameId, name, playerId, socket.id)) {
       socket.join(gameId);
-      io.in(gameId).emit("gameMessage", {
+      const msg = {
         id: uuidv4(),
         name: "Game Admin",
         message:
           `${name.toUpperCase()} ` +
           `joined the game. Click Start Game if all players have joined.`,
-      });
+      };
+      sendToGameRoom(gameId, "gameMessage", msg);
     }
   });
 

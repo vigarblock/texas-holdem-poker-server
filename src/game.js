@@ -49,7 +49,7 @@ class Game extends EventEmitter {
           action: { name: "Lost", value: "" },
           hasLost: true,
         });
-      } else if (!player.hasLeft) {
+      } else if (!player.hasLeft && !player.hasLost) {
         this.playerService.updatePlayer(player.id, {
           action: { name: "Ready", value: "" },
           callAmount: 0,
