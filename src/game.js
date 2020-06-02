@@ -75,39 +75,41 @@ class Game extends EventEmitter {
 
     // Set up hand blinds
     joinedPlayers.forEach((player) => {
-      const playerData = {
-        isActive: false,
-        isDealer: false,
-        isBigBlind: false,
-        isSmallBlind: false,
-        callAmount: 0,
-        minRaiseAmount: this.minBet,
-        playerHand: this.hand.getPlayerCardHand(),
-      };
+      if (!player.hasLost || !player.hasLeft) {
+        const playerData = {
+          isActive: false,
+          isDealer: false,
+          isBigBlind: false,
+          isSmallBlind: false,
+          callAmount: 0,
+          minRaiseAmount: this.minBet,
+          playerHand: this.hand.getPlayerCardHand(),
+        };
 
-      if (player.position === this.dealer.position) {
-        playerData.isDealer = true;
+        if (player.position === this.dealer.position) {
+          playerData.isDealer = true;
+        }
+
+        if (player.position === smallBlindPlayer.position) {
+          playerData.isSmallBlind = true;
+
+          const smallBlindBet = this.minBet / 2;
+          playerData.coins = player.coins - smallBlindBet;
+          this.hand.addToPot(smallBlindBet);
+          this.hand.addPlayerContribution(player.id, smallBlindBet);
+          playerData.action = { name: "Small Blind", value: smallBlindBet };
+        }
+
+        if (player.position === bigBlindPlayer.position) {
+          playerData.isBigBlind = true;
+          playerData.coins = player.coins - this.minBet;
+          this.hand.addToPot(this.minBet);
+          this.hand.addPlayerContribution(player.id, this.minBet);
+          playerData.action = { name: "Big Blind", value: this.minBet };
+        }
+
+        this.playerService.updatePlayer(player.id, playerData);
       }
-
-      if (player.position === smallBlindPlayer.position) {
-        playerData.isSmallBlind = true;
-
-        const smallBlindBet = this.minBet / 2;
-        playerData.coins = player.coins - smallBlindBet;
-        this.hand.addToPot(smallBlindBet);
-        this.hand.addPlayerContribution(player.id, smallBlindBet);
-        playerData.action = { name: "Small Blind", value: smallBlindBet };
-      }
-
-      if (player.position === bigBlindPlayer.position) {
-        playerData.isBigBlind = true;
-        playerData.coins = player.coins - this.minBet;
-        this.hand.addToPot(this.minBet);
-        this.hand.addPlayerContribution(player.id, this.minBet);
-        playerData.action = { name: "Big Blind", value: this.minBet };
-      }
-
-      this.playerService.updatePlayer(player.id, playerData);
     });
 
     // Once blinds have been set up, update the first active player
@@ -212,7 +214,7 @@ class Game extends EventEmitter {
   addPlayerToGame({ id, name, socketId }) {
     const playerExists = this.playerService.getPlayer(id);
 
-    if(!playerExists && this.state !== gameState.WAITING_FOR_GAME_START) {
+    if (!playerExists && this.state !== gameState.WAITING_FOR_GAME_START) {
       throw new GameHasStartedError(
         "You cannot join a game that has already started"
       );
