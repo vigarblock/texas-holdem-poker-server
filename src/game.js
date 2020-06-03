@@ -6,8 +6,9 @@ const GameHasStartedError = require("./errors/gameHasStartedError");
 const winDeterminer = require("../src/texas-holdem/winDeterminer");
 const bettingState = require("../src/constants/bettingState");
 const gameState = require("../src/constants/gameState");
-const playerWaitTimeoutMs = 32000; // 30s timeout with 2 sec buffer for clients.
+const playerWaitTimeoutMs = 32000;
 const startNewHandTimeoutMs = 10000;
+const gameIdleTimeoutMs = 180000;
 
 class Game extends EventEmitter {
   constructor(id, minBet, startingChipsPerPlayer) {
@@ -17,6 +18,7 @@ class Game extends EventEmitter {
     this.dealer = null;
     this.activePlayerId = null;
     this.waitingForPlayerResponse = null;
+    this.gameIdleTimeout = null;
     this.minBet = minBet;
     this.startingChipsPerPlayer = startingChipsPerPlayer;
 
@@ -463,6 +465,16 @@ class Game extends EventEmitter {
     this.waitingForPlayerResponse = null;
   }
 
+  startGameIdleTime() {
+    this.gameIdleTimeout = setTimeout(() => {
+      this._emitGameIdleTimeout();
+    }, gameIdleTimeoutMs);
+  }
+
+  stopGameIdleTime() {
+    clearTimeout(this.gameIdleTimeout);
+  }
+
   _shouldGameEnd() {
     const allActivePlayers = this.playerService
       .getAllPlayers()
@@ -538,6 +550,10 @@ class Game extends EventEmitter {
 
   _emitHandWinner(data) {
     this.emit("handWinner", data);
+  }
+
+  _emitGameIdleTimeout() {
+    this.emit("idleTimeout");
   }
 
   emitPlayerUpdates() {

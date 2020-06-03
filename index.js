@@ -33,7 +33,6 @@ GameManager.on("communityUpdates", (data) => {
 });
 
 GameManager.on("playerUpdates", (data) => {
-  console.log("Sending player updates", data.timeStamp);
   data.updates.forEach((p) => {
     sendToIndividualPlayer(p.socketId, "playerUpdates", {
       playerData: p.playerData,
@@ -82,10 +81,6 @@ io.on("connection", (socket) => {
 
   socket.on("playerMessage", ({ gameId, id, playerName, message }) => {
     io.in(gameId).emit("gameMessage", { id, name: playerName, message });
-  });
-
-  socket.on("disconnect", () => {
-    // TODO: handle disconnection
   });
 });
 

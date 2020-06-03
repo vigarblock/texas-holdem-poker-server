@@ -27,6 +27,10 @@ class GameManager extends EventEmitter {
       this._emitCommunityUpdates(gameId, data)
     );
     game.on("playerUpdates", (data) => this._emitPlayerUpdates(data));
+    game.on("idleTimeout", () => {
+      this._emitGameIdleTimeout(gameId);
+    });
+    game.startGameIdleTime();
 
     this.games.push({ id: gameId, instance: game });
     return gameId;
@@ -35,8 +39,10 @@ class GameManager extends EventEmitter {
   addPlayerToGame(gameId, name, playerId, socketId) {
     try {
       const game = this._getGameInstance(gameId);
+      game.stopGameIdleTime();
       game.addPlayerToGame({ id: playerId, name, socketId });
       game.emitPlayerUpdates();
+      game.startGameIdleTime();
       return true;
     } catch (error) {
       let baseMessage;
@@ -51,7 +57,7 @@ class GameManager extends EventEmitter {
         baseMessage = `An error occurred when adding player to game: ${gameId}`;
       }
       console.log(`${baseMessage}. Details : ${error}`);
-      this._emitPlayerError(gameId, { socketId, error: baseMessage });
+      this._emitPlayerError({ socketId, error: baseMessage });
       return false;
     }
   }
@@ -59,11 +65,13 @@ class GameManager extends EventEmitter {
   startGame(gameId) {
     try {
       const game = this._getGameInstance(gameId);
+      game.stopGameIdleTime();
       if (!game.hasGameStarted()) {
         game.initializeGame();
         game.startHand();
         game.emitPlayerUpdates();
       }
+      game.startGameIdleTime();
     } catch (error) {
       const baseMessage =
         error instanceof GameNotFoundError
@@ -78,12 +86,14 @@ class GameManager extends EventEmitter {
   playerAction(gameId, playerId, action, data) {
     try {
       const game = this._getGameInstance(gameId);
+      game.stopGameIdleTime();
       game.playerAction(playerId, action, data);
 
       if (!game.hasHandEnded()) {
         game.emitPlayerUpdates();
         game.emitCommunityUpdates();
       }
+      game.startGameIdleTime();
     } catch (error) {
       const baseMessage =
         error instanceof GameNotFoundError
@@ -99,6 +109,7 @@ class GameManager extends EventEmitter {
   playerExit(gameId, playerId) {
     try {
       const gameInstance = this._getGameInstance(gameId);
+      gameInstance.stopGameIdleTime();
       gameInstance.removePlayer(playerId);
 
       const remainingPlayers = gameInstance.getActivePlayerCount();
@@ -109,6 +120,7 @@ class GameManager extends EventEmitter {
         this._removeGameInstance(gameId);
       } else {
         gameInstance.emitPlayerUpdates();
+        gameInstance.startGameIdleTime();
       }
     } catch (error) {
       const baseMessage =
@@ -148,7 +160,7 @@ class GameManager extends EventEmitter {
   }
 
   _emitPlayerUpdates(updates) {
-    this.emit("playerUpdates", { timeStamp: Date.now(), updates});
+    this.emit("playerUpdates", { timeStamp: Date.now(), updates });
   }
 
   _emitCommunityUpdates(gameId, data) {
@@ -170,7 +182,15 @@ class GameManager extends EventEmitter {
     this.emit("gameError", { gameId, error });
   }
 
-  _emitPlayerError(gameId, data) {
+  _emitGameIdleTimeout(gameId) {
+    this._removeGameInstance(gameId);
+    this.emit("gameError", {
+      gameId,
+      error: "The game ended as there was inactivity for 3 minutes",
+    });
+  }
+
+  _emitPlayerError(data) {
     this.emit("gamePlayerError", data);
   }
 }
