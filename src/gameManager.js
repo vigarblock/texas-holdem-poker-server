@@ -2,6 +2,7 @@ const { v4: uuidv4 } = require("uuid");
 const EventEmitter = require("events");
 const _ = require("lodash");
 const Game = require("./game");
+const GameService = require('./gameService');
 
 const GameNotFoundError = require("./errors/gameNotFoundError");
 const PlayerValidationError = require("./errors/playerValidationError");
@@ -33,6 +34,7 @@ class GameManager extends EventEmitter {
     game.startGameIdleTime();
 
     this.games.push({ id: gameId, instance: game });
+    GameService.saveGameStartInfo(gameId);
     return gameId;
   }
 
@@ -155,6 +157,7 @@ class GameManager extends EventEmitter {
       this.games.splice(index, 1);
 
       console.log(`Removed game id ${gameId}`);
+      GameService.saveGameEndInfo(gameId);
       console.log(`Total active games is ${this.games.length}`);
     }
   }
