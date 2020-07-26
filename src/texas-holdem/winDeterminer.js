@@ -6,6 +6,9 @@ const handRanker = require("./handRanker");
 const getWinners = (players, communityCards) => {
   const handRankings = [];
 
+  console.log('Determining winner - players:', JSON.stringify(players));
+  console.log('Determining winner - community cards:', JSON.stringify(communityCards));
+
   players.forEach((player) => {
     const combinedCards = [...player.playerHand, ...communityCards];
     const handRank = getHighestRank(combinedCards);
