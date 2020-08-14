@@ -4,6 +4,10 @@ const path = require("path");
 const router = express.Router();
 const cors = require("cors");
 
+router.get("/", cors(), (req, res) => {
+  res.sendStatus(200);
+});
+
 router.get("/create-game", cors(), (req, res) => {
   let minBet = req.query.minBet;
   let startingChips = req.query.startingChips;
