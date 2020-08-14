@@ -183,4 +183,47 @@ describe("Win Determiner", () => {
     assert.equal(result.winners[0].id, "bar");
     assert.equal(result.winningRankMessage, texasHoldemRankings[8]);
   });
+
+  it("Should return winner with higher player hand when two players have tied flush ranks", () => {
+    // Arrange
+    const communityCards = [
+      { suit: "Club", value: "5" },
+      { suit: "Spade", value: "4" },
+      { suit: "Spade", value: "A" },
+      { suit: "Spade", value: "Q" },
+      { suit: "Diamond", value: "Q" },
+    ];
+
+    const players = [
+      {
+        id: "foo",
+        playerHand: [
+          { suit: "Spade", value: "9" },
+          { suit: "Spade", value: "3" },
+        ],
+      },
+      {
+        id: "bar",
+        playerHand: [
+          { suit: "Heart", value: "K" },
+          { suit: "Club", value: "2" },
+        ],
+      },
+      {
+        id: "foo-bar",
+        playerHand: [
+          { suit: "Spade", value: "J" },
+          { suit: "Spade", value: "8" },
+        ],
+      },
+    ];
+
+    // Act
+    const result = winDeterminer.getWinners(players, communityCards);
+
+    // Assert
+    assert.equal(result.winners.length, 1);
+    assert.equal(result.winners[0].id, "foo-bar");
+    assert.equal(result.winningRankMessage, texasHoldemRankings[5]);
+  });
 });

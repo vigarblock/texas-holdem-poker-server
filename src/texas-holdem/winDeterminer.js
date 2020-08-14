@@ -75,7 +75,7 @@ const getWinnerFromTiedRanks = (rankedHands, players) => {
   const involvedPlayers = [];
 
   players.forEach(player => {
-    if(_.find(rankedHands), r => r.id === player.id){
+    if(_.find(rankedHands, r => r.id === player.id)){
       involvedPlayers.push(player);
     }
   });
