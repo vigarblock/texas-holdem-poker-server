@@ -407,7 +407,7 @@ class Game extends EventEmitter {
       this.hand.addToPot(amount);
       this.hand.addPlayerContribution(player.id, amount);
 
-      const newCoinStack = player.coins - amount;
+      const newCoinStack = amount > player.coins ? 0 : player.coins - amount;
       this.playerService.updatePlayer(player.id, {
         coins: newCoinStack,
         action: { name: "Called", value: actionData },
@@ -428,7 +428,7 @@ class Game extends EventEmitter {
       this.hand.addToPot(amount);
       this.hand.addPlayerContribution(player.id, amount);
 
-      const newCoinStack = player.coins - amount;
+      const newCoinStack = amount > player.coins ? 0 : player.coins - amount;
       this.playerService.updatePlayer(player.id, {
         coins: newCoinStack,
         action: { name: "Raised", value: actionData },
