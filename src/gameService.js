@@ -1,29 +1,52 @@
-const FirestoreClient = require("../src/clients/firestoreClient");
+const low = require("lowdb");
+const FileAsync = require("lowdb/adapters/FileAsync");
+const adapter = new FileAsync("texas-holdem-poker-data.json");
 const gameInfo = "gameInfo";
 
 class GameService {
   saveGameStartInfo(gameId) {
     const gameStartInfo = {
-      docName: gameId,
+      id: gameId,
       state: "Started",
       startedAt: new Date(),
     };
 
-    FirestoreClient.save(gameInfo, gameStartInfo).catch((reason) =>
-      console.log(`Failed to save game start info : ${reason}`)
-    );
+    low(adapter)
+      .then((db) => {
+        const exists = db.has(gameInfo).value();
+
+        if (!exists) {
+          db.defaults({ [gameInfo]: [] }).write();
+        }
+
+        db.get(gameInfo).push(gameStartInfo).write();
+      })
+      .catch((reason) => {
+        console.error(`Failed to save game start record : ${reason}`);
+      });
   }
 
   saveGameEndInfo(gameId) {
     const gameEndInfo = {
-      docName: gameId,
       state: "Ended",
       endedAt: new Date(),
     };
 
-    FirestoreClient.update(gameInfo, gameEndInfo).catch((reason) =>
-      console.log(`Failed to save game start info : ${reason}`)
-    );
+    low(adapter)
+      .then((db) => {
+        const exists = db.has(gameInfo).value();
+
+        if (exists) {
+          try {
+            db.get(gameInfo).find({ id: gameId }).assign(gameEndInfo).write();
+          } catch (error) {
+            console.error(`Failed update game end record: ${error}`);
+          }
+        }
+      })
+      .catch((reason) => {
+        console.error(`Failed to update game end record : ${reason}`);
+      });
   }
 }
 
