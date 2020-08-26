@@ -36,6 +36,7 @@ GameManager.on("playerUpdates", (data) => {
       playerData: p.playerData,
       opponentsData: p.opponentsData,
       timeStamp: data.timeStamp,
+      lastPerformedAction: data.lastPerformedAction
     });
   });
 });

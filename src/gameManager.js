@@ -92,7 +92,7 @@ class GameManager extends EventEmitter {
       game.playerAction(playerId, action, data);
 
       if (!game.hasHandEnded()) {
-        game.emitPlayerUpdates();
+        game.emitPlayerUpdates(action);
         game.emitCommunityUpdates();
       }
       game.startGameIdleTime();
@@ -163,7 +163,7 @@ class GameManager extends EventEmitter {
   }
 
   _emitPlayerUpdates(updates) {
-    this.emit("playerUpdates", { timeStamp: Date.now(), updates });
+    this.emit("playerUpdates", updates);
   }
 
   _emitCommunityUpdates(gameId, data) {

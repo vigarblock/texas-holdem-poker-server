@@ -556,7 +556,7 @@ class Game extends EventEmitter {
     this.emit("idleTimeout");
   }
 
-  emitPlayerUpdates() {
+  emitPlayerUpdates(lastPerformedAction) {
     const playerUpdates = [];
 
     this.playerService.getAllPlayers().forEach((player) => {
@@ -587,7 +587,8 @@ class Game extends EventEmitter {
       playerUpdates.push(playerUpdate);
     });
 
-    this.emit("playerUpdates", playerUpdates);
+    const playerUpdatesData = { timeStamp: Date.now(), updates: playerUpdates, lastPerformedAction }
+    this.emit("playerUpdates", playerUpdatesData);
   }
 
   emitCommunityUpdates() {
