@@ -4,11 +4,16 @@ const { v4: uuidv4 } = require("uuid");
 const http = require("http");
 const router = require("./router");
 const GameManager = require("./src/gameManager");
+const process = require("process");
 
 const app = express();
 app.use(router);
 const server = http.createServer(app);
 const io = socketio(server);
+
+setInterval(() => {
+  console.log("Memory" + JSON.stringify(process.memoryUsage()));
+}, 5000);
 
 const sendToGameRoom = (room, event, data) => {
   io.in(room).emit(event, data);
@@ -36,7 +41,7 @@ GameManager.on("playerUpdates", (data) => {
       playerData: p.playerData,
       opponentsData: p.opponentsData,
       timeStamp: data.timeStamp,
-      lastPerformedAction: data.lastPerformedAction
+      lastPerformedAction: data.lastPerformedAction,
     });
   });
 });
