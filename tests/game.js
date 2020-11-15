@@ -25,7 +25,6 @@ describe("Game", () => {
   });
 
   afterEach(() => {
-    game.stopWaitingForPlayerResponse();
     clock.restore();
   });
 

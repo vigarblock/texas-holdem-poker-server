@@ -17,7 +17,6 @@ class Game extends EventEmitter {
     this.state = gameState.WAITING_FOR_GAME_START;
     this.dealer = null;
     this.activePlayerId = null;
-    this.waitingForPlayerResponse = null;
     this.gameIdleTimeout = null;
     this.minBet = minBet;
     this.startingChipsPerPlayer = startingChipsPerPlayer;
@@ -123,13 +122,17 @@ class Game extends EventEmitter {
         firstActivePlayer.coins
       ),
     });
-
-    this.waitingForPlayerResponse = this.startWaitingForPlayerResponse();
   }
 
   playerAction(playerId, action, actionData) {
+    if(playerId !== this.activePlayerId) {
+      console.error(`Received a response from an unexpected player - ${playerId} - action ${action}`);
+      return;
+    }
+
+    console.info(`Processing player - ${playerId} - action ${action}`);
+
     this.state = gameState.HAND_IN_PROGRESS;
-    this.stopWaitingForPlayerResponse();
 
     const player = this.playerService.getPlayer(playerId);
 
@@ -360,7 +363,6 @@ class Game extends EventEmitter {
             minRaiseAmount,
           });
           this.activePlayerId = nextPlayer.id;
-          this.waitingForPlayerResponse = this.startWaitingForPlayerResponse();
           return;
         }
       }
@@ -396,7 +398,6 @@ class Game extends EventEmitter {
       minRaiseAmount: this.minBet,
     });
     this.activePlayerId = nextActivePlayer.id;
-    this.waitingForPlayerResponse = this.startWaitingForPlayerResponse();
   }
 
   _handlePlayerAction(player, action, actionData) {
@@ -445,30 +446,6 @@ class Game extends EventEmitter {
       this.hand.clearBetAgreedPlayers();
       this.hand.addToBetAgreement(player);
     }
-  }
-
-  startWaitingForPlayerResponse() {
-    this.state = gameState.WAITING_FOR_PLAYER;
-    const timeout = setTimeout(
-      (playerId) => {
-        if (
-          this.state === gameState.WAITING_FOR_PLAYER &&
-          playerId === this.activePlayerId
-        ) {
-          this.playerAction(this.activePlayerId, "fold", null);
-        }
-      },
-      playerWaitTimeoutMs,
-      this.activePlayerId
-    );
-
-    return timeout;
-  }
-
-  stopWaitingForPlayerResponse() {
-    this.activePlayerId = null;
-    clearTimeout(this.waitingForPlayerResponse);
-    this.waitingForPlayerResponse = null;
   }
 
   startGameIdleTime() {
@@ -540,7 +517,6 @@ class Game extends EventEmitter {
     if (this._shouldGameEnd()) {
       handWinnerData.gameWon = true;
       handWinnerData.gameWinner = this._getGameWinner();
-      this.stopWaitingForPlayerResponse();
       this._emitHandWinner(handWinnerData);
     } else {
       this._emitHandWinner(handWinnerData);
