@@ -6,9 +6,9 @@ const GameHasStartedError = require("./errors/gameHasStartedError");
 const winDeterminer = require("../src/texas-holdem/winDeterminer");
 const bettingState = require("../src/constants/bettingState");
 const gameState = require("../src/constants/gameState");
-const playerWaitTimeoutMs = 32000;
 const startNewHandTimeoutMs = 10000;
 const gameIdleTimeoutMs = 180000;
+const blindIncrement = 1.20;
 
 class Game extends EventEmitter {
   constructor(id, minBet, startingChipsPerPlayer) {
@@ -124,8 +124,8 @@ class Game extends EventEmitter {
     });
   }
 
-  playerAction(playerId, action, actionData) {
-    if(playerId !== this.activePlayerId) {
+  playerAction(playerId, action, actionData, internalRequest) {
+    if(!internalRequest && playerId !== this.activePlayerId) {
       console.error(`Received a response from an unexpected player - ${playerId} - action ${action}`);
       return;
     }
@@ -243,7 +243,7 @@ class Game extends EventEmitter {
   removePlayer(playerId) {
     if (this.hand) {
       this.hand.addToExited(playerId);
-      this.playerAction(playerId, "fold", null);
+      this.playerAction(playerId, "fold", null, true);
     }
 
     this.playerService.updatePlayer(playerId, {
@@ -521,6 +521,7 @@ class Game extends EventEmitter {
     } else {
       this._emitHandWinner(handWinnerData);
       setTimeout(() => {
+        this.minBet = Math.round(this.minBet * blindIncrement);
         this.startHand();
         this.emitPlayerUpdates();
         this.emitCommunityUpdates();

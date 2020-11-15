@@ -118,7 +118,6 @@ class GameManager extends EventEmitter {
 
       if (remainingPlayers === 1) {
         gameInstance.emitPlayerUpdates();
-        gameInstance.stopWaitingForPlayerResponse();
         this._removeGameInstance(gameId);
       } else {
         gameInstance.emitPlayerUpdates();
@@ -152,7 +151,6 @@ class GameManager extends EventEmitter {
     const index = this.games.findIndex((g) => g.id === gameId);
 
     if (index !== -1) {
-      this.games[index].instance.stopWaitingForPlayerResponse();
       this.games[index].instance = null;
       this.games.splice(index, 1);
 
