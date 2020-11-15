@@ -206,7 +206,7 @@ describe("Game", () => {
     let expectedP3Contribution;
 
     game.on("playerUpdates", (playerUpdates) => {
-      playerUpdates.forEach(p => {
+      playerUpdates.updates.forEach(p => {
         if(p.playerData.id === '1'){
           assert.equal(p.playerData.betContribution, expectedP1Contribution)
         }

@@ -307,27 +307,41 @@ class Game extends EventEmitter {
   }
 
   _determineBetAgreement(player, onBetAgreement) {
+    console.info('Attempting to determine bet agreement on action for player - ', player);
     // Make the current player inactive
     this.playerService.updatePlayer(player.id, {
       isActive: false,
       callAmount: 0,
     });
 
-    // Determine if another player needs to made active or the bet is settled
-    let repeat = true;
-    let nextPlayerCalculationPosition = player.position;
-    while (repeat) {
-      const nextPlayer = this._getNextPlayer(nextPlayerCalculationPosition);
+    // If bet agreement has been reached, execute callback and return.
+    if (this.hand.havePlayersAgreedOnBet(this.getActivePlayerCount())) {
+      if (this.hand.hasEveryoneElseFolded(this.getActivePlayerCount())) {
+        this.hand.setAutomaticHandWinner(this.hand.betAgreedPlayers[0]);
+      }
 
+      onBetAgreement();
+      this.hand.clearBetAgreedPlayers();
+      return;
+    }
+
+    // No agreement  yet, determine who needs to act next.
+    let currentPosition = player.position;
+    for (let i = 0; i < this.getActivePlayerCount() - 1; i++) {
+      // Get next player
+      const nextPlayer = this._getNextPlayer(currentPosition);
+
+      // Check if player needs to act
       if (this.hand.doesPlayerNeedToTakeAction(nextPlayer.id)) {
+        // If everyone has folded, player does not really need to act
         if (this.hand.hasEveryoneElseFolded(this.getActivePlayerCount())) {
-          // Make this player the automatic winner
           this.hand.setAutomaticHandWinner(nextPlayer);
           this.hand.addToBetAgreement(nextPlayer);
           onBetAgreement();
           this.hand.clearBetAgreedPlayers();
-          repeat = false;
+          return;
         } else {
+          // Determine call values and make player active
           const callAmount = this.hand.getMinCallAmount(
             nextPlayer.id,
             nextPlayer.coins
@@ -347,22 +361,14 @@ class Game extends EventEmitter {
           });
           this.activePlayerId = nextPlayer.id;
           this.waitingForPlayerResponse = this.startWaitingForPlayerResponse();
-          repeat = false;
+          return;
         }
-      } else {
-        if (this.hand.havePlayersAgreedOnBet(this.getActivePlayerCount())) {
-          if (this.hand.hasEveryoneElseFolded(this.getActivePlayerCount())) {
-            this.hand.setAutomaticHandWinner(this.hand.betAgreedPlayers[0]);
-          }
-
-          onBetAgreement();
-          this.hand.clearBetAgreedPlayers();
-          repeat = false;
-        }
-
-        nextPlayerCalculationPosition = nextPlayer.position;
       }
+
+      currentPosition = nextPlayer.position;
     }
+
+    throw new Error('Failed to determine bet agreement.');
   }
 
   _makePlayerActivePostBetAgreement() {
@@ -587,7 +593,11 @@ class Game extends EventEmitter {
       playerUpdates.push(playerUpdate);
     });
 
-    const playerUpdatesData = { timeStamp: Date.now(), updates: playerUpdates, lastPerformedAction }
+    const playerUpdatesData = {
+      timeStamp: Date.now(),
+      updates: playerUpdates,
+      lastPerformedAction,
+    };
     this.emit("playerUpdates", playerUpdatesData);
   }
 
